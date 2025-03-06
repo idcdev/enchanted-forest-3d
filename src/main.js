@@ -61,15 +61,25 @@ class Main {
         // Fallback: Start game after a timeout if loading doesn't complete
         this.loadingTimeout = setTimeout(() => {
             console.warn('Loading timeout reached, starting game anyway');
-            const loadingScreen = document.getElementById('loading-screen');
-            if (loadingScreen.style.display !== 'none') {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                    if (!this.player) {
-                        this.startGame();
-                    }
-                }, 1000);
+            
+            // Initialize game components first
+            this.startGame();
+            
+            // Then hide loading screen and show class selection
+            if (this.ui) {
+                console.log('Calling hideLoadingScreen from timeout fallback');
+                this.ui.hideLoadingScreen();
+            } else {
+                console.error('UI not available for hiding loading screen');
+                
+                // Fallback: Hide loading screen directly
+                const loadingScreen = document.getElementById('loading-screen');
+                if (loadingScreen) {
+                    loadingScreen.style.opacity = '0';
+                    setTimeout(() => {
+                        loadingScreen.style.display = 'none';
+                    }, 1000);
+                }
             }
         }, 5000); // 5 seconds timeout
     }
@@ -77,7 +87,6 @@ class Main {
     setupLoadingManager() {
         const progressBar = document.getElementById('progress-bar');
         const loadingText = document.getElementById('loading-text');
-        const loadingScreen = document.getElementById('loading-screen');
         
         this.loadingManager.onProgress = (url, itemsLoaded, itemsTotal) => {
             const progress = (itemsLoaded / itemsTotal) * 100;
@@ -95,12 +104,19 @@ class Main {
                 this.loadingTimeout = null;
             }
             
+            // Wait a moment before starting the game
             setTimeout(() => {
-                loadingScreen.style.opacity = '0';
-                setTimeout(() => {
-                    loadingScreen.style.display = 'none';
-                    this.startGame();
-                }, 1000);
+                // Initialize game components first
+                this.startGame();
+                
+                // Then hide loading screen and show class selection
+                // This ensures the UI has access to the game instance
+                if (this.ui) {
+                    console.log('Calling hideLoadingScreen to show class selection');
+                    this.ui.hideLoadingScreen();
+                } else {
+                    console.error('UI not available for hiding loading screen');
+                }
             }, 1000);
         };
         
@@ -164,14 +180,22 @@ class Main {
     }
     
     startGame() {
+        console.log('Starting game initialization');
+        
         // Initialize player
         this.player = new Player(this.scene, this.camera, this.inputHandler, this.assetLoader);
+        console.log('Player initialized');
         
         // Initialize game
         this.game = new Game(this.scene, this.camera, this.player, this.ui, this.inputHandler, this.assetLoader);
+        console.log('Game initialized');
         
         // Expose game instance globally
         window.game = this.game;
+        
+        // Explicitly call setupClassSelection to ensure it's called
+        console.log('Explicitly calling setupClassSelection');
+        this.game.setupClassSelection();
         
         // Start background music if available (commented out to avoid errors)
         // This can be uncommented when real sounds are available
@@ -182,7 +206,10 @@ class Main {
         */
         
         // Start animation loop
+        console.log('Starting animation loop');
         this.animate();
+        
+        console.log('Game initialization complete');
     }
     
     onWindowResize() {
