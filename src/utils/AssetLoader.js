@@ -15,6 +15,7 @@ export class AssetLoader {
         // Audio context
         this.audioContext = null;
         this.audioListener = null;
+        this.audioAvailable = false;
         
         // Initialize audio if browser supports it
         this.initAudio();
@@ -31,6 +32,7 @@ export class AssetLoader {
             if (window.AudioContext) {
                 this.audioContext = new AudioContext();
                 this.audioListener = new THREE.AudioListener();
+                this.audioAvailable = true;
                 
                 // Resume audio context on user interaction (required by browsers)
                 const resumeAudio = () => {
@@ -49,9 +51,11 @@ export class AssetLoader {
                 console.log('Audio system initialized');
             } else {
                 console.warn('AudioContext not supported in this browser');
+                this.audioAvailable = false;
             }
         } catch (error) {
             console.error('Error initializing audio:', error);
+            this.audioAvailable = false;
         }
     }
     
@@ -95,21 +99,26 @@ export class AssetLoader {
         
         // Load each texture with fallback
         for (const [name, path] of Object.entries(textureFiles)) {
-            this.textureLoader.load(
-                path,
-                (texture) => {
-                    texture.wrapS = THREE.RepeatWrapping;
-                    texture.wrapT = THREE.RepeatWrapping;
-                    texture.repeat.set(1, 1);
-                    this.textures[name] = texture;
-                },
-                undefined,
-                () => {
-                    // Error loading texture, use fallback
-                    console.warn(`Using fallback for texture: ${name}`);
-                    this.textures[name] = this.fallbackTextures[name];
-                }
-            );
+            try {
+                this.textureLoader.load(
+                    path,
+                    (texture) => {
+                        texture.wrapS = THREE.RepeatWrapping;
+                        texture.wrapT = THREE.RepeatWrapping;
+                        texture.repeat.set(1, 1);
+                        this.textures[name] = texture;
+                        console.log(`Loaded texture: ${name}`);
+                    },
+                    undefined,
+                    (error) => {
+                        console.warn(`Using fallback for texture: ${name}`);
+                        this.textures[name] = this.fallbackTextures[name];
+                    }
+                );
+            } catch (error) {
+                console.warn(`Error loading texture ${name}, using fallback`);
+                this.textures[name] = this.fallbackTextures[name];
+            }
         }
     }
     
@@ -120,8 +129,8 @@ export class AssetLoader {
     
     loadSounds() {
         // Check if audio is supported
-        if (!this.audioContext || !this.audioListener) {
-            console.warn('Audio not supported, skipping sound loading');
+        if (!this.audioAvailable) {
+            console.warn('Audio not supported or disabled, skipping sound loading');
             return;
         }
         
@@ -171,40 +180,46 @@ export class AssetLoader {
             return sound;
         };
         
-        // Load each sound
+        // Create silent sounds for all defined sounds
+        for (const name of Object.keys(soundFiles)) {
+            this.sounds[name] = createSilentBuffer();
+        }
+        
+        // Try to load each sound
         for (const [name, path] of Object.entries(soundFiles)) {
-            // Create a buffer for this sound
-            const sound = new THREE.Audio(this.audioListener);
-            
-            // Load and set the audio
-            audioLoader.load(
-                path,
-                (buffer) => {
-                    sound.setBuffer(buffer);
-                    sound.setVolume(0.5); // Default volume
-                    
-                    // Set loop for background music
-                    if (name === 'bgm') {
-                        sound.setLoop(true);
-                        sound.setVolume(0.3); // Lower volume for background music
+            try {
+                // Load and set the audio
+                audioLoader.load(
+                    path,
+                    (buffer) => {
+                        const sound = new THREE.Audio(this.audioListener);
+                        sound.setBuffer(buffer);
+                        sound.setVolume(0.5); // Default volume
+                        
+                        // Set loop for background music
+                        if (name === 'bgm') {
+                            sound.setLoop(true);
+                            sound.setVolume(0.3); // Lower volume for background music
+                        }
+                        
+                        this.sounds[name] = sound;
+                        console.log(`Loaded sound: ${name}`);
+                    },
+                    (xhr) => {
+                        // Progress callback
+                        console.log(`${name} ${(xhr.loaded / xhr.total * 100).toFixed(0)}% loaded`);
+                    },
+                    (error) => {
+                        // Error callback
+                        console.error(`Error loading sound ${name}:`, error);
+                        console.warn(`Using silent fallback for sound: ${name}`);
+                        // Silent fallback already created
                     }
-                    
-                    this.sounds[name] = sound;
-                    console.log(`Loaded sound: ${name}`);
-                },
-                (xhr) => {
-                    // Progress callback
-                    console.log(`${name} ${(xhr.loaded / xhr.total * 100).toFixed(0)}% loaded`);
-                },
-                (error) => {
-                    // Error callback
-                    console.error(`Error loading sound ${name}:`, error);
-                    
-                    // Create a silent buffer as fallback
-                    this.sounds[name] = createSilentBuffer();
-                    console.warn(`Using silent fallback for sound: ${name}`);
-                }
-            );
+                );
+            } catch (error) {
+                console.error(`Error setting up sound ${name}:`, error);
+                // Silent fallback already created
+            }
         }
     }
     
@@ -221,6 +236,11 @@ export class AssetLoader {
     }
     
     playSound(name, options = {}) {
+        // Skip if audio is not available
+        if (!this.audioAvailable) {
+            return;
+        }
+        
         if (!this.sounds[name]) {
             console.warn(`Sound "${name}" not found`);
             return;

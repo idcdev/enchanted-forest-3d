@@ -137,8 +137,10 @@ class Main {
         // Expose game instance globally
         window.game = this.game;
         
-        // Start background music
-        this.assetLoader.playSound('bgm');
+        // Start background music if available
+        if (this.assetLoader.sounds['bgm']) {
+            this.assetLoader.playSound('bgm');
+        }
         
         // Start animation loop
         this.animate();
