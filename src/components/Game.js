@@ -13,7 +13,7 @@ export class Game {
         
         // Game state
         this.state = {
-            isPlaying: true,
+            isPlaying: false, // Changed to false until class is selected
             isPaused: false,
             isGameOver: false,
             isLevelComplete: false,
@@ -39,6 +39,9 @@ export class Game {
         
         // Setup event listeners
         this.setupEventListeners();
+        
+        // Setup class selection callback
+        this.setupClassSelection();
         
         // Show level info
         this.showLevelInfo();
@@ -84,13 +87,28 @@ export class Game {
         });
     }
     
+    setupClassSelection() {
+        // Set callback for class selection
+        this.ui.setClassSelectionCallback((className) => {
+            // Set player class
+            this.player.setClass(className);
+            
+            // Start the game
+            this.state.isPlaying = true;
+            this.clock.start();
+            
+            // Show message
+            this.ui.showMessage(`You are now a ${className}. Good luck!`, 3000);
+        });
+    }
+    
     showLevelInfo() {
         const levelInfo = this.levelManager.getCurrentLevelInfo();
         this.ui.showMessage(`Nível: ${levelInfo.name} - ${levelInfo.difficulty}`, 5000);
     }
     
     update(deltaTime) {
-        if (this.state.isPaused || this.state.isGameOver || this.state.isLevelComplete) {
+        if (this.state.isPaused || this.state.isGameOver || this.state.isLevelComplete || !this.state.isPlaying) {
             return;
         }
         
@@ -156,6 +174,9 @@ export class Game {
         
         // Check other collisions (collectibles, enemies)
         this.checkCollisions();
+        
+        // Check projectile collisions
+        this.checkProjectileCollisions();
         
         // Update camera to follow player
         this.updateCamera();
@@ -386,44 +407,50 @@ export class Game {
         const attackRange = attackData.range;
         const attackAngle = attackData.angle;
         const attackDamage = attackData.damage;
+        const playerClass = attackData.playerClass;
         
-        // Check each enemy to see if it's within the attack cone
-        for (let i = 0; i < enemies.length; i++) {
-            const enemy = enemies[i];
-            const enemyPosition = enemy.position.clone();
-            
-            // Calculate vector from player to enemy
-            const toEnemy = new THREE.Vector3().subVectors(enemyPosition, playerPosition);
-            
-            // Check if enemy is within range
-            const distance = toEnemy.length();
-            if (distance > attackRange) {
-                continue; // Enemy is too far away
-            }
-            
-            // Normalize the vectors for angle calculation
-            toEnemy.normalize();
-            
-            // Calculate the angle between attack direction and direction to enemy
-            const dot = attackDirection.dot(toEnemy);
-            const angle = Math.acos(dot);
-            
-            // Check if enemy is within the attack angle
-            if (angle <= attackAngle / 2) {
-                // Enemy is hit!
-                enemy.takeDamage(attackDamage);
+        // For warrior (melee attack), check enemies in cone
+        if (playerClass === 'warrior') {
+            // Check each enemy to see if it's within the attack cone
+            for (let i = 0; i < enemies.length; i++) {
+                const enemy = enemies[i];
+                const enemyPosition = enemy.position.clone();
                 
-                // Apply knockback to the enemy
-                const knockbackDirection = toEnemy.multiplyScalar(3);
-                enemy.applyKnockback(knockbackDirection);
+                // Calculate vector from player to enemy
+                const toEnemy = new THREE.Vector3().subVectors(enemyPosition, playerPosition);
                 
-                // Play attack hit sound
-                this.player.assetLoader.playSound('attackHit');
+                // Check if enemy is within range
+                const distance = toEnemy.length();
+                if (distance > attackRange) {
+                    continue; // Enemy is too far away
+                }
                 
-                // Show hit effect
-                this.showHitEffect(enemyPosition);
+                // Normalize the vectors for angle calculation
+                toEnemy.normalize();
+                
+                // Calculate the angle between attack direction and direction to enemy
+                const dot = attackDirection.dot(toEnemy);
+                const angle = Math.acos(dot);
+                
+                // Check if enemy is within the attack angle
+                if (angle <= attackAngle / 2) {
+                    // Enemy is hit!
+                    enemy.takeDamage(attackDamage);
+                    
+                    // Apply knockback to the enemy
+                    const knockbackDirection = toEnemy.multiplyScalar(3);
+                    enemy.applyKnockback(knockbackDirection);
+                    
+                    // Play attack hit sound
+                    this.player.assetLoader.playSound('attackHit');
+                    
+                    // Show hit effect
+                    this.showHitEffect(enemyPosition);
+                }
             }
         }
+        
+        // For archer and mage, projectiles are handled in checkProjectileCollisions
     }
     
     showHitEffect(position) {
@@ -500,5 +527,109 @@ export class Game {
                 this.ui.showMessage(`Bonus: +${bonus} Crystals!`, 2000);
             }, 3000);
         }
+    }
+    
+    checkProjectileCollisions() {
+        const enemies = this.level.getEnemies();
+        const projectiles = this.player.projectiles;
+        
+        // Check each projectile against each enemy
+        for (let i = projectiles.length - 1; i >= 0; i--) {
+            const projectile = projectiles[i];
+            const projectileBox = new THREE.Box3().setFromObject(projectile.mesh);
+            
+            for (let j = 0; j < enemies.length; j++) {
+                const enemy = enemies[j];
+                const enemyBox = enemy.getCollider();
+                
+                // Check collision
+                if (this.physics.checkCollision(projectileBox, enemyBox)) {
+                    // Enemy is hit!
+                    enemy.takeDamage(projectile.damage);
+                    
+                    // Apply knockback to the enemy based on projectile direction
+                    const knockbackDirection = projectile.velocity.clone().normalize().multiplyScalar(2);
+                    enemy.applyKnockback(knockbackDirection);
+                    
+                    // Play hit sound based on projectile type
+                    if (projectile.type === 'arrow') {
+                        this.player.assetLoader.playSound('arrowHit');
+                    } else if (projectile.type === 'spell') {
+                        this.player.assetLoader.playSound('spellHit');
+                    }
+                    
+                    // Show hit effect
+                    this.showHitEffect(enemy.position.clone());
+                    
+                    // For mage spell, create area effect
+                    if (projectile.type === 'spell') {
+                        this.createSpellAreaEffect(projectile.position.clone(), projectile.damage / 2);
+                    }
+                    
+                    // Remove projectile
+                    this.scene.remove(projectile.mesh);
+                    projectiles.splice(i, 1);
+                    
+                    // Break to next projectile
+                    break;
+                }
+            }
+        }
+    }
+    
+    createSpellAreaEffect(position, damage) {
+        // Create visual effect
+        const areaGeometry = new THREE.CircleGeometry(3, 32);
+        const areaMaterial = new THREE.MeshBasicMaterial({
+            color: 0x3f51b5,
+            transparent: true,
+            opacity: 0.3,
+            side: THREE.DoubleSide
+        });
+        
+        const areaEffect = new THREE.Mesh(areaGeometry, areaMaterial);
+        areaEffect.position.copy(position);
+        areaEffect.rotation.x = Math.PI / 2;
+        
+        this.scene.add(areaEffect);
+        
+        // Damage all enemies in area
+        const enemies = this.level.getEnemies();
+        const areaRadius = 3;
+        
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            const distance = enemy.position.distanceTo(position);
+            
+            if (distance <= areaRadius) {
+                // Enemy is in area effect
+                enemy.takeDamage(damage);
+                
+                // Show hit effect
+                this.showHitEffect(enemy.position.clone());
+            }
+        }
+        
+        // Animate and remove area effect
+        const startTime = Date.now();
+        const duration = 1000; // 1 second
+        
+        const animateArea = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = elapsed / duration;
+            
+            if (progress < 1) {
+                // Scale up and fade out
+                areaEffect.scale.set(1 + progress, 1 + progress, 1);
+                areaEffect.material.opacity = 0.3 * (1 - progress);
+                
+                requestAnimationFrame(animateArea);
+            } else {
+                // Remove effect
+                this.scene.remove(areaEffect);
+            }
+        };
+        
+        animateArea();
     }
 } 

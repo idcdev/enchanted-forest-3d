@@ -19,18 +19,22 @@ export class Player {
         this.wasInAir = false;
         this.jumpRequested = false; // Track if jump was requested but not yet processed
         
-        // Flight mechanics
+        // Player class
+        this.playerClass = 'warrior'; // Default class
+        this.projectiles = []; // For archer and mage
+        
+        // Flying properties
         this.isFlying = false;
+        this.fuel = 100;
         this.maxFuel = 100;
-        this.currentFuel = this.maxFuel;
-        this.fuelConsumptionRate = 12; // Reduzido para consumir menos combustível
+        this.fuelConsumptionRate = 15;
         this.fuelRegenerationRate = 8; // Aumentado para regenerar mais rápido
         this.flightForce = 12;        // Reduzido para um voo mais controlável
         this.flightSpeed = 7;         // Reduzido para um voo mais controlável
         this.canFly = true; // Whether player has enough fuel to fly
         this.flyingSoundPlaying = false;
         
-        // Player stats
+        // Player stats (will be adjusted based on class)
         this.moveSpeed = 5;
         this.jumpForce = 12; // Reduzido para um pulo mais controlável
         this.gravity = 22;   // Ajustado para uma queda mais natural
@@ -88,6 +92,19 @@ export class Player {
         
         // Handle any player-specific updates that aren't handled by Game
         // For example, animations could be updated here
+        
+        // Update attack cooldown
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= deltaTime;
+        }
+        
+        // Update dash cooldown
+        if (this.dashCooldown > 0) {
+            this.dashCooldown -= deltaTime;
+        }
+        
+        // Update projectiles
+        this.updateProjectiles(deltaTime);
     }
     
     handleInput(deltaTime) {
@@ -193,7 +210,7 @@ export class Player {
     
     fly(deltaTime) {
         // Check if player has enough fuel to fly
-        if (this.currentFuel > 0 && this.canFly) {
+        if (this.fuel > 0 && this.canFly) {
             // Activate flying state
             this.isFlying = true;
             
@@ -209,7 +226,7 @@ export class Player {
             );
             
             // Consume fuel
-            this.currentFuel -= this.fuelConsumptionRate * deltaTime;
+            this.fuel -= this.fuelConsumptionRate * deltaTime;
             
             // Create visual effect for flying
             this.showFlyingEffect();
@@ -221,8 +238,8 @@ export class Player {
             }
             
             // If fuel is depleted, stop flying
-            if (this.currentFuel <= 0) {
-                this.currentFuel = 0;
+            if (this.fuel <= 0) {
+                this.fuel = 0;
                 this.canFly = false;
                 this.isFlying = false;
                 this.stopFlying(deltaTime);
@@ -244,12 +261,12 @@ export class Player {
         this.isFlying = false;
         
         // Regenerate fuel when not flying
-        if (this.currentFuel < this.maxFuel) {
-            this.currentFuel += this.fuelRegenerationRate * deltaTime;
+        if (this.fuel < this.maxFuel) {
+            this.fuel += this.fuelRegenerationRate * deltaTime;
             
             // Cap fuel at maximum
-            if (this.currentFuel >= this.maxFuel) {
-                this.currentFuel = this.maxFuel;
+            if (this.fuel >= this.maxFuel) {
+                this.fuel = this.maxFuel;
                 this.canFly = true;
             }
         }
@@ -390,7 +407,7 @@ export class Player {
         
         // Reset flight mechanics
         this.isFlying = false;
-        this.currentFuel = this.maxFuel;
+        this.fuel = this.maxFuel;
         this.canFly = true;
         this.flyingSoundPlaying = false;
         
@@ -498,11 +515,20 @@ export class Player {
         this.attackDuration = this.attackDurationTime;
         this.attackCooldown = this.attackCooldownTime;
         
-        // Play attack sound
-        this.assetLoader.playSound('attackSwing');
-        
-        // Show attack effect
-        this.showAttackEffect();
+        // Play attack sound based on class
+        switch (this.playerClass) {
+            case 'warrior':
+                this.assetLoader.playSound('swordSwing');
+                break;
+            case 'archer':
+                this.assetLoader.playSound('bowShot');
+                break;
+            case 'mage':
+                this.assetLoader.playSound('magicCast');
+                break;
+            default:
+                this.assetLoader.playSound('attackSwing');
+        }
         
         // Get camera direction for attack direction
         const attackDirection = new THREE.Vector3();
@@ -510,9 +536,18 @@ export class Player {
         attackDirection.y = 0;
         attackDirection.normalize();
         
-        // Check for enemies in attack range and angle
-        // This would need to be implemented in the Game class to check collisions with enemies
-        // For now, we'll just show the visual effect
+        // Perform class-specific attack
+        switch (this.playerClass) {
+            case 'warrior':
+                this.performWarriorAttack(attackDirection);
+                break;
+            case 'archer':
+                this.performArcherAttack(attackDirection);
+                break;
+            case 'mage':
+                this.performMageAttack(attackDirection);
+                break;
+        }
         
         // Emit attack event that Game class can listen for
         const attackEvent = new CustomEvent('playerAttack', {
@@ -521,80 +556,164 @@ export class Player {
                 direction: attackDirection,
                 range: this.attackRange,
                 angle: this.attackAngle,
-                damage: this.attackDamage
+                damage: this.attackDamage,
+                playerClass: this.playerClass
             }
         });
         window.dispatchEvent(attackEvent);
     }
     
-    showAttackEffect() {
-        // Create a cone to represent the attack area
-        const coneGeometry = new THREE.ConeGeometry(this.attackRange, this.attackRange, 32);
-        const coneMaterial = new THREE.MeshBasicMaterial({
+    performWarriorAttack(direction) {
+        // Create a sword slash effect
+        this.showSwordEffect(direction);
+    }
+    
+    performArcherAttack(direction) {
+        // Create and shoot an arrow
+        this.shootArrow(direction);
+    }
+    
+    performMageAttack(direction) {
+        // Create a magic area effect
+        this.castSpell(direction);
+    }
+    
+    showSwordEffect(direction) {
+        // Create a sword slash mesh
+        const slashGeometry = new THREE.TorusGeometry(2, 0.2, 8, 16, Math.PI);
+        const slashMaterial = new THREE.MeshBasicMaterial({
             color: 0xff0000,
             transparent: true,
-            opacity: 0.3
+            opacity: 0.7,
+            side: THREE.DoubleSide
         });
         
-        // Create the attack effect mesh
-        this.attackEffect = new THREE.Mesh(coneGeometry, coneMaterial);
+        this.attackEffect = new THREE.Mesh(slashGeometry, slashMaterial);
         
-        // Position and rotate the cone to match the player's position and facing direction
+        // Position the slash in front of the player
         this.attackEffect.position.copy(this.mesh.position);
-        this.attackEffect.position.y += 0.5; // Raise slightly above ground
+        this.attackEffect.position.y += 0.5;
         
-        // Rotate the cone to point forward (cone points up by default)
-        this.attackEffect.rotation.x = Math.PI / 2;
+        // Rotate to face the direction
+        this.attackEffect.lookAt(this.mesh.position.clone().add(direction));
+        this.attackEffect.rotateX(Math.PI / 2);
         
-        // Get camera direction for attack direction
-        const attackDirection = new THREE.Vector3();
-        this.camera.getWorldDirection(attackDirection);
-        attackDirection.y = 0;
-        attackDirection.normalize();
-        
-        // Create a quaternion to rotate the cone to face the camera direction
-        const quaternion = new THREE.Quaternion();
-        quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), attackDirection);
-        
-        // Apply the quaternion to the cone's rotation
-        this.attackEffect.quaternion.premultiply(quaternion);
-        
-        // Add the attack effect to the scene
+        // Add to scene
         this.scene.add(this.attackEffect);
         
-        // Create particle effect for the attack
-        const particleCount = 15;
-        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-        const particleMaterial = new THREE.MeshBasicMaterial({
-            color: 0xff5500,
-            transparent: true,
-            opacity: 0.7
-        });
+        // Animate the slash
+        const startTime = Date.now();
+        const duration = this.attackDurationTime * 1000;
         
-        for (let i = 0; i < particleCount; i++) {
+        const animateSlash = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = elapsed / duration;
+            
+            if (progress < 1) {
+                // Rotate the slash for a sweeping effect
+                this.attackEffect.rotation.z = Math.PI * 2 * progress;
+                this.attackEffect.material.opacity = 0.7 * (1 - progress);
+                
+                requestAnimationFrame(animateSlash);
+            } else {
+                // Remove the slash
+                this.scene.remove(this.attackEffect);
+                this.attackEffect = null;
+            }
+        };
+        
+        animateSlash();
+    }
+    
+    shootArrow(direction) {
+        // Create arrow geometry
+        const arrowGeometry = new THREE.CylinderGeometry(0.05, 0.05, 1, 8);
+        const arrowMaterial = new THREE.MeshBasicMaterial({ color: 0x8B4513 });
+        const arrowMesh = new THREE.Mesh(arrowGeometry, arrowMaterial);
+        
+        // Rotate arrow to point in direction
+        arrowMesh.rotation.x = Math.PI / 2;
+        
+        // Position arrow at player position
+        arrowMesh.position.copy(this.mesh.position);
+        arrowMesh.position.y += 0.5;
+        
+        // Move arrow slightly forward
+        arrowMesh.position.add(direction.clone().multiplyScalar(1));
+        
+        // Add to scene
+        this.scene.add(arrowMesh);
+        
+        // Create projectile object
+        const arrow = {
+            mesh: arrowMesh,
+            position: arrowMesh.position,
+            velocity: direction.clone().multiplyScalar(20),
+            lifetime: 2,
+            damage: this.attackDamage,
+            type: 'arrow'
+        };
+        
+        // Add to projectiles array
+        this.projectiles.push(arrow);
+        
+        // Create trail effect
+        this.createProjectileTrail(arrow, 0x4caf50);
+    }
+    
+    castSpell(direction) {
+        // Create spell orb
+        const spellGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const spellMaterial = new THREE.MeshBasicMaterial({
+            color: 0x3f51b5,
+            transparent: true,
+            opacity: 0.8
+        });
+        const spellMesh = new THREE.Mesh(spellGeometry, spellMaterial);
+        
+        // Position spell at player position
+        spellMesh.position.copy(this.mesh.position);
+        spellMesh.position.y += 0.5;
+        
+        // Move spell slightly forward
+        spellMesh.position.add(direction.clone().multiplyScalar(1));
+        
+        // Add to scene
+        this.scene.add(spellMesh);
+        
+        // Create projectile object
+        const spell = {
+            mesh: spellMesh,
+            position: spellMesh.position,
+            velocity: direction.clone().multiplyScalar(15),
+            lifetime: 1.5,
+            damage: this.attackDamage,
+            type: 'spell'
+        };
+        
+        // Add to projectiles array
+        this.projectiles.push(spell);
+        
+        // Create trail effect
+        this.createProjectileTrail(spell, 0x3f51b5);
+        
+        // Add point light to spell
+        const light = new THREE.PointLight(0x3f51b5, 1, 3);
+        spellMesh.add(light);
+    }
+    
+    createProjectileTrail(projectile, color) {
+        // Create trail particles
+        const createTrailParticle = () => {
+            const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+            const particleMaterial = new THREE.MeshBasicMaterial({
+                color: color,
+                transparent: true,
+                opacity: 0.5
+            });
+            
             const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-            
-            // Position particle at the player's position
-            particle.position.copy(this.mesh.position);
-            
-            // Calculate a random position within the attack cone
-            const angle = (Math.random() - 0.5) * this.attackAngle;
-            const distance = Math.random() * this.attackRange;
-            
-            // Create a direction vector based on the camera direction and random angle
-            const particleDirection = attackDirection.clone();
-            
-            // Create a rotation axis perpendicular to the attack direction
-            const rotationAxis = new THREE.Vector3(0, 1, 0);
-            
-            // Rotate the particle direction around the rotation axis by the random angle
-            particleDirection.applyAxisAngle(rotationAxis, angle);
-            
-            // Move the particle along the direction by the random distance
-            particle.position.add(particleDirection.multiplyScalar(distance));
-            
-            // Add some height variation
-            particle.position.y += 0.5 + Math.random() * 0.5;
+            particle.position.copy(projectile.position);
             
             this.scene.add(particle);
             
@@ -611,13 +730,109 @@ export class Player {
             };
             
             animateParticle();
-        }
+        };
+        
+        // Create trail particles at intervals
+        const trailInterval = setInterval(() => {
+            if (projectile.lifetime <= 0) {
+                clearInterval(trailInterval);
+                return;
+            }
+            
+            createTrailParticle();
+        }, 50);
     }
     
     removeAttackEffect() {
         if (this.attackEffect) {
             this.scene.remove(this.attackEffect);
             this.attackEffect = null;
+        }
+    }
+    
+    // Add method to set player class
+    setClass(className) {
+        this.playerClass = className;
+        
+        // Update player stats based on class
+        switch (className) {
+            case 'warrior':
+                this.moveSpeed = 4.5;
+                this.attackDamage = 2;
+                this.attackRange = 2.5;
+                this.attackCooldownTime = 0.6;
+                this.attackAngle = Math.PI / 3; // 60 degrees cone
+                break;
+            case 'archer':
+                this.moveSpeed = 6;
+                this.attackDamage = 1;
+                this.attackRange = 15;
+                this.attackCooldownTime = 0.4;
+                this.attackAngle = Math.PI / 12; // 15 degrees cone (narrow)
+                break;
+            case 'mage':
+                this.moveSpeed = 4;
+                this.attackDamage = 1.5;
+                this.attackRange = 8;
+                this.attackCooldownTime = 0.8;
+                this.attackAngle = Math.PI; // 180 degrees cone (wide area)
+                break;
+        }
+        
+        // Update player appearance based on class
+        this.updatePlayerAppearance();
+    }
+    
+    updatePlayerAppearance() {
+        // Remove existing mesh
+        if (this.mesh) {
+            this.scene.remove(this.mesh);
+        }
+        
+        // Create new mesh based on class
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        let material;
+        
+        switch (this.playerClass) {
+            case 'warrior':
+                material = new THREE.MeshStandardMaterial({ color: 0xf44336 }); // Red
+                break;
+            case 'archer':
+                material = new THREE.MeshStandardMaterial({ color: 0x4caf50 }); // Green
+                break;
+            case 'mage':
+                material = new THREE.MeshStandardMaterial({ color: 0x3f51b5 }); // Blue
+                break;
+            default:
+                material = new THREE.MeshStandardMaterial({ color: 0xffffff }); // White
+        }
+        
+        this.mesh = new THREE.Mesh(geometry, material);
+        this.mesh.position.copy(this.position);
+        this.mesh.castShadow = true;
+        this.mesh.receiveShadow = true;
+        this.scene.add(this.mesh);
+        
+        // Update collider
+        this.updateCollider();
+    }
+    
+    updateProjectiles(deltaTime) {
+        // Update existing projectiles
+        for (let i = this.projectiles.length - 1; i >= 0; i--) {
+            const projectile = this.projectiles[i];
+            
+            // Move projectile
+            projectile.position.add(projectile.velocity.clone().multiplyScalar(deltaTime));
+            
+            // Update lifetime
+            projectile.lifetime -= deltaTime;
+            
+            // Remove if lifetime is over
+            if (projectile.lifetime <= 0) {
+                this.scene.remove(projectile.mesh);
+                this.projectiles.splice(i, 1);
+            }
         }
     }
 } 

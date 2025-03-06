@@ -2,6 +2,16 @@
 
 ## [Unreleased]
 
+### Sistema de Classes
+- Adicionado sistema de seleção de classe (Guerreiro, Arqueiro, Mago)
+- Implementados diferentes tipos de ataque para cada classe:
+  - Guerreiro: Ataque corpo a corpo com espada
+  - Arqueiro: Ataque à distância com flechas
+  - Mago: Ataque de área com magia
+- Cada classe possui estatísticas únicas (velocidade, dano, alcance)
+- Adicionada tela de seleção de classe no início do jogo
+- Adicionado indicador visual da classe selecionada na interface
+
 ### Melhorias na Interface de Usuário
 - Adicionada exibição permanente dos controles na tela de jogo
 - Implementado sistema de dicas que destaca os controles quando usados pela primeira vez

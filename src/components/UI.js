@@ -13,6 +13,11 @@ export class UI {
         this.finalCrystals = document.getElementById('final-crystals');
         this.finalSeeds = document.getElementById('final-seeds');
         this.controlsDisplay = document.getElementById('controls-display');
+        this.classSelectionScreen = document.getElementById('class-selection-screen');
+        this.classIcon = document.getElementById('class-icon');
+        
+        // Class selection callback
+        this.onClassSelected = null;
         
         // Setup event listeners for key tips
         this.setupEventListeners();
@@ -22,6 +27,31 @@ export class UI {
         // Listen for key tip events
         window.addEventListener('showKeyTip', (event) => {
             this.showKeyTip(event.detail.key, event.detail.description);
+        });
+        
+        // Setup class selection buttons
+        const selectButtons = document.querySelectorAll('.select-button');
+        selectButtons.forEach(button => {
+            button.addEventListener('click', (event) => {
+                const classCard = event.target.closest('.class-card');
+                const selectedClass = classCard.dataset.class;
+                this.selectClass(selectedClass);
+            });
+        });
+        
+        // Add hover effect to class cards
+        const classCards = document.querySelectorAll('.class-card');
+        classCards.forEach(card => {
+            card.addEventListener('mouseenter', () => {
+                // Remove selected class from all cards
+                classCards.forEach(c => c.classList.remove('selected'));
+                // Add selected class to hovered card
+                card.classList.add('selected');
+            });
+            
+            card.addEventListener('mouseleave', () => {
+                card.classList.remove('selected');
+            });
         });
     }
     
@@ -34,6 +64,8 @@ export class UI {
         this.loadingScreen.style.opacity = '0';
         setTimeout(() => {
             this.loadingScreen.style.display = 'none';
+            // Show class selection screen after loading
+            this.showClassSelection();
         }, 1000);
     }
     
@@ -161,5 +193,40 @@ export class UI {
                 controlIcon.classList.remove('highlight');
             }, 3000);
         }
+    }
+    
+    // Add new methods for class selection
+    showClassSelection() {
+        this.classSelectionScreen.style.display = 'flex';
+    }
+    
+    hideClassSelection() {
+        this.classSelectionScreen.style.display = 'none';
+    }
+    
+    selectClass(className) {
+        // Update class icon
+        this.classIcon.className = '';
+        this.classIcon.classList.add(className);
+        
+        // Hide class selection screen
+        this.hideClassSelection();
+        
+        // Play class selection sound
+        if (window.game && window.game.player && window.game.player.assetLoader) {
+            window.game.player.assetLoader.playSound('classSelected');
+        }
+        
+        // Call the callback if it exists
+        if (this.onClassSelected) {
+            this.onClassSelected(className);
+        }
+        
+        // Show message
+        this.showMessage(`You selected the ${className.charAt(0).toUpperCase() + className.slice(1)} class!`, 3000);
+    }
+    
+    setClassSelectionCallback(callback) {
+        this.onClassSelected = callback;
     }
 }

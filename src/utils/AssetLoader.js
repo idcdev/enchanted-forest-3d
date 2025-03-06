@@ -135,8 +135,17 @@ export class AssetLoader {
             'playerLand': '/audio/player_land.mp3',
             'playerDamage': '/audio/player_damage.mp3',
             'playerFly': '/audio/player_fly.mp3',
+            
+            // Attack sounds - general
             'attackSwing': '/audio/attack_swing.mp3',
             'attackHit': '/audio/attack_hit.mp3',
+            
+            // Attack sounds - class specific
+            'swordSwing': '/audio/sword_swing.mp3',
+            'bowShot': '/audio/bow_shot.mp3',
+            'magicCast': '/audio/magic_cast.mp3',
+            'arrowHit': '/audio/arrow_hit.mp3',
+            'spellHit': '/audio/spell_hit.mp3',
             
             // Enemy sounds
             'enemyDetect': '/audio/enemy_detect.mp3',
@@ -150,7 +159,8 @@ export class AssetLoader {
             // UI sounds
             'buttonClick': '/audio/button_click.mp3',
             'levelComplete': '/audio/level_complete.mp3',
-            'gameOver': '/audio/game_over.mp3'
+            'gameOver': '/audio/game_over.mp3',
+            'classSelected': '/audio/class_selected.mp3'
         };
         
         // Create a silent buffer as fallback

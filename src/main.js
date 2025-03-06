@@ -134,6 +134,9 @@ class Main {
         // Initialize game
         this.game = new Game(this.scene, this.camera, this.player, this.ui, this.inputHandler, this.assetLoader);
         
+        // Expose game instance globally
+        window.game = this.game;
+        
         // Start background music
         this.assetLoader.playSound('bgm');
         

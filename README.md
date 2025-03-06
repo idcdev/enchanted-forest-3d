@@ -14,6 +14,7 @@ A 3D platform game built with Three.js where players navigate through an enchant
 - Special platform types: moving platforms and disappearing platforms
 - Intuitive user interface with visible controls and interactive tips
 - Combat system with attack mechanics and enemy interactions
+- Class system with unique abilities (Warrior, Archer, Mage)
 
 ## How to Run
 
@@ -37,6 +38,25 @@ npm run dev
 - E: Dash (quick burst of speed)
 - Q: Attack (damage enemies in front)
 - ESC: Pause game
+
+## Class System
+
+The game features three playable classes, each with unique abilities and stats:
+
+- **Warrior**: Specializes in powerful melee attacks with a sword
+  - High damage up close
+  - Strong defense
+  - Slower movement speed
+
+- **Archer**: Specializes in ranged attacks with a bow
+  - Can attack enemies from a distance
+  - Fast movement speed
+  - Lower defense
+
+- **Mage**: Specializes in area-of-effect magical attacks
+  - Can damage multiple enemies at once
+  - Special magical abilities
+  - Low defense but high damage potential
 
 ## User Interface
 
