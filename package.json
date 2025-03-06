@@ -1,0 +1,18 @@
+{
+  "name": "enchanted-forest-3d",
+  "version": "1.0.0",
+  "description": "A 3D platform game with an enchanted forest theme using Three.js",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "three": "^0.159.0",
+    "cannon-es": "^0.20.0"
+  },
+  "devDependencies": {
+    "vite": "^5.0.0"
+  }
+} 

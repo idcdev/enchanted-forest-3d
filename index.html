@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enchanted Forest 3D</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading-screen">
+            <div class="loading-content">
+                <h1>Enchanted Forest</h1>
+                <div class="progress-bar-container">
+                    <div id="progress-bar"></div>
+                </div>
+                <p id="loading-text">Loading...</p>
+                <div class="controls-info">
+                    <h3>Controls:</h3>
+                    <p>WASD or Arrow Keys - Move</p>
+                    <p>Space - Jump</p>
+                    <p>Shift - Sprint</p>
+                    <p>F - Fly (Hold to activate flight)</p>
+                </div>
+            </div>
+        </div>
+        
+        <div id="ui-container">
+            <div id="score-container">
+                <div id="crystals">Crystals: <span id="crystal-count">0</span></div>
+                <div id="seeds">Seeds: <span id="seed-count">0</span></div>
+            </div>
+            <div id="health-container">
+                <div id="health-bar"></div>
+            </div>
+            <div id="fuel-container">
+                <div id="fuel-label">Flight Fuel</div>
+                <div id="fuel-bar-container">
+                    <div id="fuel-bar"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div id="game-over" class="overlay">
+            <div class="overlay-content">
+                <h2>Game Over</h2>
+                <p>Your journey in the enchanted forest has ended.</p>
+                <button id="restart-button">Try Again</button>
+            </div>
+        </div>
+        
+        <div id="level-complete" class="overlay">
+            <div class="overlay-content">
+                <h2>Level Complete!</h2>
+                <p>You've collected <span id="final-crystals">0</span> crystals and <span id="final-seeds">0</span> seeds.</p>
+                <button id="next-level-button">Next Level</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module" src="./src/main.js"></script>
+</body>
+</html> 

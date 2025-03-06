@@ -1,0 +1,218 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body, html {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    font-family: 'Arial', sans-serif;
+    background-color: #000;
+}
+
+#game-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+/* Loading Screen */
+#loading-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, #1a472a, #2d704e);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+    transition: opacity 1s ease-in-out;
+}
+
+.loading-content {
+    text-align: center;
+    color: #fff;
+}
+
+.loading-content h1 {
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 10px rgba(144, 238, 144, 0.8);
+}
+
+.progress-bar-container {
+    width: 300px;
+    height: 20px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    margin: 0 auto;
+    overflow: hidden;
+}
+
+#progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: #90ee90;
+    transition: width 0.3s ease-in-out;
+}
+
+#loading-text {
+    margin-top: 1rem;
+    font-size: 1.2rem;
+}
+
+.controls-info {
+    margin-top: 2rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    padding: 1rem;
+    border-radius: 10px;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.controls-info h3 {
+    margin-bottom: 0.5rem;
+    color: #90ee90;
+}
+
+.controls-info p {
+    margin: 0.3rem 0;
+    font-size: 0.9rem;
+}
+
+/* UI Elements */
+#ui-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+    font-size: 1.2rem;
+}
+
+#score-container {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+#health-container {
+    width: 200px;
+    height: 15px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 7px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+#health-bar {
+    height: 100%;
+    width: 100%;
+    background-color: #4caf50;
+    transition: width 0.3s ease-in-out;
+}
+
+/* Fuel Bar Styles */
+#fuel-container {
+    margin-top: 5px;
+}
+
+#fuel-label {
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+    color: #fff;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+#fuel-bar-container {
+    width: 200px;
+    height: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#fuel-bar {
+    height: 100%;
+    width: 100%;
+    background-color: #3498db; /* Blue color for fuel */
+    transition: width 0.3s ease-in-out;
+}
+
+/* Pulsing effect for low fuel */
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+#fuel-bar.pulse {
+    animation: pulse 0.8s infinite;
+}
+
+/* Overlay Screens */
+.overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 50;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease-in-out;
+}
+
+.overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+.overlay-content {
+    background-color: rgba(45, 112, 78, 0.9);
+    padding: 2rem;
+    border-radius: 10px;
+    text-align: center;
+    color: #fff;
+    max-width: 500px;
+}
+
+.overlay-content h2 {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+}
+
+.overlay-content p {
+    margin-bottom: 1.5rem;
+    font-size: 1.2rem;
+}
+
+.overlay-content button {
+    background-color: #90ee90;
+    border: none;
+    padding: 0.8rem 1.5rem;
+    font-size: 1.1rem;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.overlay-content button:hover {
+    background-color: #7cdc7c;
+} 
