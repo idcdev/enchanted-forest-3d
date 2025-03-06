@@ -45,6 +45,11 @@ export class Game {
         
         // Show level info
         this.showLevelInfo();
+        
+        // Culling settings
+        this.cullingDistance = 50; // Distance beyond which objects are culled
+        this.cullingFrequency = 5; // How often to check for distant objects (frames)
+        this.frameCount = 0;
     }
     
     setupEventListeners() {
@@ -126,77 +131,27 @@ export class Game {
     }
     
     update(deltaTime) {
-        if (this.state.isPaused || this.state.isGameOver || this.state.isLevelComplete || !this.state.isPlaying) {
+        // Skip if game is paused or over
+        if (this.state.isPaused || this.state.isGameOver || this.state.isLevelComplete) {
             return;
         }
         
-        // Limit deltaTime to prevent physics issues on slow devices
-        const cappedDeltaTime = Math.min(deltaTime, 0.1);
+        // Update frame counter for culling
+        this.frameCount++;
         
-        // Update physics
-        this.physics.update(cappedDeltaTime);
+        // Update player
+        this.player.update(deltaTime);
         
-        // Update player input and apply gravity
-        this.player.handleInput(cappedDeltaTime);
+        // Update level (platforms, enemies, collectibles)
+        this.level.update(deltaTime, this.player);
         
-        // Apply gravity only if not flying
-        if (!this.player.isGrounded && !this.player.isFlying) {
-            // Apply gravity with a smoother effect
-            this.player.velocity.y -= this.player.gravity * cappedDeltaTime;
-        } else if (this.player.isFlying) {
-            // Apply a small amount of gravity even when flying to make it feel more natural
-            // This creates resistance that the player must overcome
-            this.player.velocity.y -= (this.player.gravity * 0.15) * cappedDeltaTime;
-        }
-        
-        // Clamp velocity to prevent extreme values
-        const maxVelocity = 20;
-        this.player.velocity.x = Math.max(Math.min(this.player.velocity.x, maxVelocity), -maxVelocity);
-        this.player.velocity.y = Math.max(Math.min(this.player.velocity.y, maxVelocity), -maxVelocity);
-        this.player.velocity.z = Math.max(Math.min(this.player.velocity.z, maxVelocity), -maxVelocity);
-        
-        // Store previous position for collision detection
-        const previousPosition = this.player.position.clone();
-        
-        // Update player position based on velocity
-        this.player.position.x += this.player.velocity.x * cappedDeltaTime;
-        this.player.position.y += this.player.velocity.y * cappedDeltaTime;
-        this.player.position.z += this.player.velocity.z * cappedDeltaTime;
-        
-        // Prevent falling through the world - safety check
-        if (this.player.position.y < -10) {
-            this.player.position.set(0, 5, 0); // Reset to a safe position above the ground
-            this.player.velocity.set(0, 0, 0);
-        }
-        
-        // Check for ground collision first (only if not flying)
-        if (!this.player.isFlying) {
-            this.player.checkGrounded();
-        }
-        
-        // Check platform collisions (only if not flying)
-        if (!this.player.isFlying) {
-            this.level.checkPlatformCollisions(this.player);
-        }
-        
-        // Check obstacle collisions (trees, mushrooms, etc.)
-        this.level.checkObstacleCollisions(this.player);
-        
-        // Update player mesh and collider
-        this.player.mesh.position.copy(this.player.position);
-        this.player.mesh.rotation.copy(this.player.rotation);
-        this.player.updateCollider();
-        
-        // Update level (enemies, collectibles, etc.)
-        this.level.update(cappedDeltaTime, this.player);
-        
-        // Check other collisions (collectibles, enemies)
+        // Check collisions
         this.checkCollisions();
         
         // Check projectile collisions
         this.checkProjectileCollisions();
         
-        // Update camera to follow player
+        // Update camera
         this.updateCamera();
         
         // Update UI
@@ -204,6 +159,11 @@ export class Game {
         
         // Check game conditions
         this.checkGameConditions();
+        
+        // Perform object culling every few frames
+        if (this.frameCount % this.cullingFrequency === 0) {
+            this.performCulling();
+        }
     }
     
     checkCollisions() {
@@ -693,5 +653,40 @@ export class Game {
             this.camera.position.y = originalPosition.y + (Math.random() - 0.5) * currentIntensity;
             this.camera.position.z = originalPosition.z + (Math.random() - 0.5) * currentIntensity;
         }, 16); // ~60fps
+    }
+    
+    // Cull distant objects to improve performance
+    performCulling() {
+        const playerPosition = this.player.position;
+        
+        // Get all enemies from the level
+        const enemies = this.level.getEnemies();
+        
+        // Cull distant enemies
+        for (const enemy of enemies) {
+            const distance = enemy.position.distanceTo(playerPosition);
+            
+            // If enemy is far away, reduce update frequency or disable completely
+            if (distance > this.cullingDistance) {
+                enemy.isCulled = true;
+            } else {
+                enemy.isCulled = false;
+            }
+        }
+        
+        // Get all collectibles from the level
+        const collectibles = this.level.getCollectibles();
+        
+        // Cull distant collectibles
+        for (const collectible of collectibles) {
+            const distance = collectible.position.distanceTo(playerPosition);
+            
+            // If collectible is far away, reduce update frequency
+            if (distance > this.cullingDistance) {
+                collectible.isCulled = true;
+            } else {
+                collectible.isCulled = false;
+            }
+        }
     }
 } 

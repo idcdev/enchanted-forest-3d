@@ -58,6 +58,25 @@
 - Ajustada a câmera para melhor visualização durante o voo
 - Modificada a física para desativar colisões com o chão durante o voo
 
+### Melhorias no Sistema de Combate
+- Rebalanceado o comportamento dos inimigos para tornar o combate mais justo
+- Adicionado sistema de preparação de ataque para inimigos com indicador visual
+- Reduzida a velocidade e alcance de detecção dos inimigos
+- Implementado sistema de invulnerabilidade temporária após receber dano
+- Melhorado o efeito visual de invulnerabilidade com transparência e pulsação
+- Adicionado efeito de câmera trêmula ao receber dano
+- Reduzido o dano causado pelos inimigos de 10 para 5
+- Implementado sistema de cooldown para ataques inimigos
+
+### Otimizações de Desempenho
+- Adicionado sistema de configurações de qualidade gráfica (Baixa, Média, Alta)
+- Implementado culling de objetos distantes para melhorar o desempenho
+- Reduzido o número de luzes pontuais na cena
+- Otimizado o sistema de partículas para usar menos recursos
+- Melhorada a qualidade das sombras com base nas configurações
+- Adicionado menu de configurações gráficas no menu de pausa
+- Implementado sistema de LOD (Level of Detail) para efeitos visuais
+
 ## [Planejado]
 
 ### Fase 4 - Otimização e Polimento

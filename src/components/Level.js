@@ -548,18 +548,33 @@ export class Level {
     update(deltaTime, player) {
         // Update collectibles
         for (const collectible of this.collectibles) {
+            // Skip update if collectible is culled
+            if (collectible.isCulled) continue;
+            
             collectible.update(deltaTime);
         }
         
         // Update enemies
         for (const enemy of this.enemies) {
+            // Skip update if enemy is culled
+            if (enemy.isCulled) continue;
+            
             enemy.update(deltaTime, player);
         }
         
         // Update platforms
         for (const platform of this.platforms) {
+            // Only update platforms that have an update method
+            // and are within a reasonable distance from the player
             if (platform.update) {
-                platform.update(deltaTime);
+                // Get distance to player
+                const distance = platform.position ? 
+                    platform.position.distanceTo(player.position) : 0;
+                
+                // Only update platforms that are close to the player
+                if (distance < 50) {
+                    platform.update(deltaTime);
+                }
             }
         }
     }

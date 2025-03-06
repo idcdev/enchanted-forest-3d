@@ -518,4 +518,44 @@ canvas {
 
 #class-icon.mage:before {
     content: "✨";
+}
+
+/* Settings Menu */
+#settings-menu {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    border-radius: 10px;
+    flex-direction: column;
+    align-items: center;
+    gap: 15px;
+    z-index: 1000;
+    min-width: 300px;
+}
+
+#settings-menu h2 {
+    color: #fff;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+.quality-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    margin-bottom: 10px;
+    width: 100%;
+}
+
+.quality-option input[type="radio"] {
+    margin-right: 10px;
+}
+
+.quality-option label {
+    cursor: pointer;
 } 

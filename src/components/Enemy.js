@@ -13,11 +13,23 @@ export class Enemy {
         this.direction = new THREE.Vector3(0, 0, 0);
         this.rotation = new THREE.Euler(0, 0, 0);
         
-        // Enemy stats
-        this.moveSpeed = 3;
-        this.detectionRadius = 10;
+        // Enemy stats - REDUCED SPEED AND DETECTION RADIUS
+        this.moveSpeed = 2; // Reduced from 3
+        this.detectionRadius = 8; // Reduced from 10
         this.isChasing = false;
         this.hasDetectedPlayer = false;
+        
+        // Attack state - NEW
+        this.isPreparingAttack = false;
+        this.isAttacking = false;
+        this.attackPreparationTime = 1.0; // 1 second to telegraph attack
+        this.attackPreparationTimer = 0;
+        this.attackDuration = 0.5; // Attack lasts 0.5 seconds
+        this.attackTimer = 0;
+        this.attackCooldown = 2.0; // 2 seconds between attacks
+        this.attackCooldownTimer = 0;
+        this.attackRange = 2.0; // Must be this close to attack
+        this.attackDamage = 5; // Reduced from 10 (implied in Game.js)
         
         // Health and damage
         this.maxHealth = 3;
@@ -31,6 +43,11 @@ export class Enemy {
         this.knockbackDuration = 0;
         this.knockbackRecoveryTime = 0.3; // seconds
         
+        // Stun - NEW
+        this.isStunned = false;
+        this.stunDuration = 0;
+        this.stunTime = 1.0; // 1 second stun when hit
+        
         // Patrol variables
         this.patrolAngle = Math.random() * Math.PI * 2;
         this.patrolSpeed = 0.5;
@@ -40,63 +57,56 @@ export class Enemy {
         
         // Create collider
         this.collider = new THREE.Box3().setFromObject(this.mesh);
+        
+        // Attack indicator - NEW
+        this.attackIndicator = null;
+        this.createAttackIndicator();
     }
     
     createEnemyMesh() {
-        // Create a corrupted creature
-        const bodyGeometry = new THREE.SphereGeometry(0.6, 8, 8);
-        const bodyMaterial = new THREE.MeshStandardMaterial({
-            color: 0x4e342e,
-            roughness: 0.8,
-            metalness: 0.2
+        // Create enemy mesh
+        const geometry = new THREE.SphereGeometry(0.5, 16, 16);
+        const material = new THREE.MeshStandardMaterial({ 
+            color: 0xff0000,
+            emissive: 0x330000, // Use emissive instead of a light
+            emissiveIntensity: 0.5
         });
         
-        this.mesh = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        this.mesh = new THREE.Mesh(geometry, material);
         this.mesh.position.copy(this.position);
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
         
-        // Add eyes
-        const eyeGeometry = new THREE.SphereGeometry(0.15, 8, 8);
-        const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+        // Add enemy to scene
+        this.scene.add(this.mesh);
         
-        const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        leftEye.position.set(-0.25, 0.2, 0.5);
-        this.mesh.add(leftEye);
+        // Create collider
+        this.collider = new THREE.Box3().setFromObject(this.mesh);
         
-        const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
-        rightEye.position.set(0.25, 0.2, 0.5);
-        this.mesh.add(rightEye);
-        
-        // Add spikes
-        const spikeGeometry = new THREE.ConeGeometry(0.15, 0.5, 8);
-        const spikeMaterial = new THREE.MeshStandardMaterial({
-            color: 0x212121,
-            roughness: 0.7,
-            metalness: 0.3
+        // Only add light in medium or high quality
+        if (this.scene.parent && this.scene.parent.quality && 
+            (this.scene.parent.quality.maxLights > 0)) {
+            const light = new THREE.PointLight(0xff0000, 0.5, 2);
+            light.position.set(0, 0, 0);
+            this.mesh.add(light);
+        }
+    }
+    
+    createAttackIndicator() {
+        const geometry = new THREE.RingGeometry(1, 1.2, 32);
+        const material = new THREE.MeshBasicMaterial({ 
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.0,
+            side: THREE.DoubleSide
         });
         
-        const spikePositions = [
-            { x: 0, y: 0.6, z: 0, rx: 0, ry: 0, rz: 0 },
-            { x: 0.5, y: 0.3, z: 0, rx: 0, ry: 0, rz: Math.PI / 2 },
-            { x: -0.5, y: 0.3, z: 0, rx: 0, ry: 0, rz: -Math.PI / 2 },
-            { x: 0, y: 0, z: 0.5, rx: Math.PI / 2, ry: 0, rz: 0 },
-            { x: 0, y: 0, z: -0.5, rx: -Math.PI / 2, ry: 0, rz: 0 }
-        ];
+        this.attackIndicator = new THREE.Mesh(geometry, material);
+        this.attackIndicator.rotation.x = Math.PI / 2; // Make it horizontal
+        this.attackIndicator.position.copy(this.position);
+        this.attackIndicator.position.y += 0.1; // Slightly above ground
         
-        for (const pos of spikePositions) {
-            const spike = new THREE.Mesh(spikeGeometry, spikeMaterial);
-            spike.position.set(pos.x, pos.y, pos.z);
-            spike.rotation.set(pos.rx, pos.ry, pos.rz);
-            this.mesh.add(spike);
-        }
-        
-        // Add a subtle glow effect
-        const light = new THREE.PointLight(0xff0000, 0.5, 2);
-        light.position.set(0, 0, 0);
-        this.mesh.add(light);
-        
-        this.scene.add(this.mesh);
+        this.scene.add(this.attackIndicator);
     }
     
     update(deltaTime, player) {
@@ -123,14 +133,97 @@ export class Enemy {
                 // Update mesh position
                 this.mesh.position.copy(this.position);
                 this.updateCollider();
+                this.updateAttackIndicator();
                 return; // Skip normal movement while knocked back
             }
+        }
+        
+        // Update stun - NEW
+        if (this.isStunned) {
+            this.stunDuration -= deltaTime;
+            if (this.stunDuration <= 0) {
+                this.isStunned = false;
+                // Reset attack state when recovering from stun
+                this.isPreparingAttack = false;
+                this.isAttacking = false;
+                this.attackPreparationTimer = 0;
+                this.attackTimer = 0;
+                
+                // Hide attack indicator
+                if (this.attackIndicator) {
+                    this.attackIndicator.material.opacity = 0;
+                }
+            } else {
+                // Skip normal movement while stunned
+                this.updateAttackIndicator();
+                return;
+            }
+        }
+        
+        // Update attack cooldown - NEW
+        if (this.attackCooldownTimer > 0) {
+            this.attackCooldownTimer -= deltaTime;
         }
         
         // Check distance to player
         const distanceToPlayer = this.position.distanceTo(player.position);
         
-        if (distanceToPlayer < this.detectionRadius) {
+        // Attack logic - NEW
+        if (this.isChasing && distanceToPlayer < this.attackRange && this.attackCooldownTimer <= 0) {
+            if (!this.isPreparingAttack && !this.isAttacking) {
+                // Start preparing attack
+                this.isPreparingAttack = true;
+                this.attackPreparationTimer = this.attackPreparationTime;
+                
+                // Show attack indicator
+                if (this.attackIndicator) {
+                    this.attackIndicator.material.opacity = 0.5;
+                }
+            }
+        }
+        
+        // Update attack preparation - NEW
+        if (this.isPreparingAttack) {
+            this.attackPreparationTimer -= deltaTime;
+            
+            // Gradually increase indicator opacity
+            if (this.attackIndicator) {
+                const progress = 1 - (this.attackPreparationTimer / this.attackPreparationTime);
+                this.attackIndicator.material.opacity = 0.5 + (0.5 * progress);
+                this.attackIndicator.scale.set(1 + progress, 1 + progress, 1);
+            }
+            
+            if (this.attackPreparationTimer <= 0) {
+                // Transition from preparation to attack
+                this.isPreparingAttack = false;
+                this.isAttacking = true;
+                this.attackTimer = this.attackDuration;
+                
+                // Hide attack indicator
+                if (this.attackIndicator) {
+                    this.attackIndicator.material.opacity = 0;
+                    this.attackIndicator.scale.set(1, 1, 1);
+                }
+            }
+            
+            // Don't move while preparing attack
+            this.velocity.set(0, 0, 0);
+        }
+        // Update attack - NEW
+        else if (this.isAttacking) {
+            this.attackTimer -= deltaTime;
+            
+            if (this.attackTimer <= 0) {
+                // Attack finished
+                this.isAttacking = false;
+                this.attackCooldownTimer = this.attackCooldown;
+            }
+            
+            // Don't move while attacking
+            this.velocity.set(0, 0, 0);
+        }
+        // Normal movement logic
+        else if (distanceToPlayer < this.detectionRadius) {
             // Player is within detection radius, chase them
             if (!this.isChasing) {
                 this.isChasing = true;
@@ -164,6 +257,16 @@ export class Enemy {
         
         // Update collider
         this.updateCollider();
+        
+        // Update attack indicator position
+        this.updateAttackIndicator();
+    }
+    
+    updateAttackIndicator() {
+        if (this.attackIndicator) {
+            this.attackIndicator.position.copy(this.position);
+            this.attackIndicator.position.y += 0.1; // Slightly above ground
+        }
     }
     
     patrol(deltaTime) {
@@ -210,8 +313,11 @@ export class Enemy {
         }
         
         // Set velocity based on direction and move speed
-        this.velocity.x = this.direction.x * this.moveSpeed;
-        this.velocity.z = this.direction.z * this.moveSpeed;
+        // Don't move if preparing to attack or attacking
+        if (!this.isPreparingAttack && !this.isAttacking) {
+            this.velocity.x = this.direction.x * this.moveSpeed;
+            this.velocity.z = this.direction.z * this.moveSpeed;
+        }
         
         // Update rotation to face player
         if (this.direction.length() > 0) {
@@ -241,7 +347,6 @@ export class Enemy {
         this.scene.remove(this.mesh);
     }
     
-    // Add new methods for damage and knockback
     takeDamage(damage) {
         if (this.isInvulnerable) return;
         
@@ -251,6 +356,20 @@ export class Enemy {
         
         // Show damage effect
         this.showDamageEffect();
+        
+        // Apply stun when hit - NEW
+        this.isStunned = true;
+        this.stunDuration = this.stunTime;
+        
+        // Reset attack state when hit
+        this.isPreparingAttack = false;
+        this.isAttacking = false;
+        
+        // Hide attack indicator
+        if (this.attackIndicator) {
+            this.attackIndicator.material.opacity = 0;
+            this.attackIndicator.scale.set(1, 1, 1);
+        }
         
         // Check if enemy is defeated
         if (this.health <= 0) {
@@ -297,64 +416,87 @@ export class Enemy {
     }
     
     die() {
-        // Create death particles
-        const particleCount = 20;
-        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-        const particleMaterial = new THREE.MeshBasicMaterial({
-            color: 0x4e342e,
-            transparent: true,
-            opacity: 0.7
-        });
+        // Skip if already dead
+        if (this.isDead) return;
         
-        for (let i = 0; i < particleCount; i++) {
-            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-            particle.position.copy(this.position);
-            
-            // Add random offset
-            particle.position.x += (Math.random() - 0.5) * 1;
-            particle.position.y += (Math.random() - 0.5) * 1;
-            particle.position.z += (Math.random() - 0.5) * 1;
-            
-            this.scene.add(particle);
-            
-            // Animate and remove particle
-            const direction = new THREE.Vector3(
-                (Math.random() - 0.5) * 2,
-                (Math.random() - 0.5) * 2 + 1, // Bias upward
-                (Math.random() - 0.5) * 2
-            ).normalize();
-            
-            const speed = 0.05 + Math.random() * 0.1;
-            
-            const animateParticle = () => {
-                particle.position.add(direction.clone().multiplyScalar(speed));
-                particle.material.opacity -= 0.02;
-                
-                if (particle.material.opacity <= 0) {
-                    this.scene.remove(particle);
-                    return;
-                }
-                
-                requestAnimationFrame(animateParticle);
-            };
-            
-            animateParticle();
-        }
+        this.isDead = true;
         
         // Play death sound
-        if (this.assetLoader) {
-            this.assetLoader.playSound('enemyDeath');
+        this.assetLoader.playSound('enemyDeath');
+        
+        // Emit death event
+        const deathEvent = new CustomEvent('enemyDeath', {
+            detail: {
+                position: this.mesh.position.clone(),
+                score: 100
+            }
+        });
+        document.dispatchEvent(deathEvent);
+        
+        // Create death particles based on quality
+        if (this.scene.parent && this.scene.parent.quality) {
+            const quality = this.scene.parent.quality;
+            const particleCount = Math.floor(15 * quality.particleMultiplier);
+            
+            if (particleCount > 0) {
+                // Create death particles
+                for (let i = 0; i < particleCount; i++) {
+                    const particle = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.1, 4, 4),
+                        new THREE.MeshBasicMaterial({
+                            color: 0xff0000,
+                            transparent: true,
+                            opacity: 0.8
+                        })
+                    );
+                    
+                    // Position particle at enemy position with slight randomness
+                    particle.position.copy(this.mesh.position);
+                    particle.position.x += (Math.random() - 0.5) * 0.5;
+                    particle.position.y += (Math.random() - 0.5) * 0.5;
+                    particle.position.z += (Math.random() - 0.5) * 0.5;
+                    
+                    // Store velocity for animation
+                    particle.velocity = new THREE.Vector3(
+                        (Math.random() - 0.5) * 0.3,
+                        (Math.random() - 0.5) * 0.3 + 0.2, // Slight upward bias
+                        (Math.random() - 0.5) * 0.3
+                    );
+                    
+                    // Add to scene
+                    this.scene.add(particle);
+                    
+                    // Animate and remove after a short time
+                    const animateParticle = () => {
+                        if (particle.material.opacity <= 0) {
+                            this.scene.remove(particle);
+                            particle.geometry.dispose();
+                            particle.material.dispose();
+                            return;
+                        }
+                        
+                        particle.position.add(particle.velocity);
+                        particle.material.opacity -= 0.02;
+                        
+                        requestAnimationFrame(animateParticle);
+                    };
+                    
+                    animateParticle();
+                }
+            }
         }
         
         // Remove enemy from scene
         this.remove();
-        
-        // Emit death event for the Game class to handle
-        const deathEvent = new CustomEvent('enemyDeath', {
-            detail: {
-                position: this.position.clone()
-            }
-        });
-        window.dispatchEvent(deathEvent);
+    }
+    
+    // Check if enemy is currently attacking - NEW
+    isCurrentlyAttacking() {
+        return this.isAttacking;
+    }
+    
+    // Get attack damage - NEW
+    getAttackDamage() {
+        return this.attackDamage;
     }
 } 

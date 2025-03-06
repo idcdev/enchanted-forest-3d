@@ -44,23 +44,26 @@ export class Collectible {
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
         
-        // Add a point light to make the crystal glow
-        const light = new THREE.PointLight(0x2196f3, 1, 2);
-        light.position.set(0, 0, 0);
-        this.mesh.add(light);
+        // Only add light in medium or high quality
+        if (this.scene.parent && this.scene.parent.quality && 
+            (this.scene.parent.quality.maxLights > 0)) {
+            const light = new THREE.PointLight(0x2196f3, 1, 2);
+            light.position.set(0, 0, 0);
+            this.mesh.add(light);
+        }
         
         this.scene.add(this.mesh);
     }
     
     createSeed() {
         // Create a seed-like geometry
-        const geometry = new THREE.SphereGeometry(0.25, 8, 8);
+        const geometry = new THREE.SphereGeometry(0.3, 8, 8);
         const material = new THREE.MeshStandardMaterial({
             color: 0xffeb3b,
             emissive: 0xfbc02d,
-            emissiveIntensity: 0.3,
-            roughness: 0.6,
-            metalness: 0.2
+            emissiveIntensity: 0.5,
+            roughness: 0.3,
+            metalness: 0.5
         });
         
         this.mesh = new THREE.Mesh(geometry, material);
@@ -68,10 +71,13 @@ export class Collectible {
         this.mesh.castShadow = true;
         this.mesh.receiveShadow = true;
         
-        // Add a small glow effect
-        const light = new THREE.PointLight(0xffeb3b, 0.5, 1);
-        light.position.set(0, 0, 0);
-        this.mesh.add(light);
+        // Only add light in medium or high quality
+        if (this.scene.parent && this.scene.parent.quality && 
+            (this.scene.parent.quality.maxLights > 0)) {
+            const light = new THREE.PointLight(0xffeb3b, 0.5, 1);
+            light.position.set(0, 0, 0);
+            this.mesh.add(light);
+        }
         
         this.scene.add(this.mesh);
     }

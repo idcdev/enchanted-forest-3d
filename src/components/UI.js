@@ -482,4 +482,116 @@ export class UI {
         
         console.log('Class selection screen created dynamically');
     }
+    
+    setupUI() {
+        // Create UI elements
+        this.createScoreDisplay();
+        this.createHealthBar();
+        this.createFuelBar();
+        this.createControlsDisplay();
+        this.createPauseMenu();
+        this.createGameOverScreen();
+        this.createLevelCompleteScreen();
+        this.createLevelInfoDisplay();
+        
+        // Add quality settings button to pause menu
+        const pauseMenu = document.getElementById('pause-menu');
+        if (pauseMenu) {
+            const settingsButton = document.createElement('button');
+            settingsButton.textContent = 'Configurações Gráficas';
+            settingsButton.classList.add('menu-button');
+            settingsButton.addEventListener('click', () => this.showQualitySettings());
+            pauseMenu.appendChild(settingsButton);
+        }
+    }
+    
+    // Add quality settings menu
+    showQualitySettings() {
+        // Hide pause menu
+        const pauseMenu = document.getElementById('pause-menu');
+        if (pauseMenu) {
+            pauseMenu.style.display = 'none';
+        }
+        
+        // Create settings menu if it doesn't exist
+        let settingsMenu = document.getElementById('settings-menu');
+        if (!settingsMenu) {
+            settingsMenu = document.createElement('div');
+            settingsMenu.id = 'settings-menu';
+            settingsMenu.classList.add('menu');
+            document.getElementById('ui-container').appendChild(settingsMenu);
+            
+            const title = document.createElement('h2');
+            title.textContent = 'Configurações Gráficas';
+            settingsMenu.appendChild(title);
+            
+            // Quality options
+            const qualityOptions = ['low', 'medium', 'high'];
+            const qualityLabels = {
+                'low': 'Baixa (Melhor Desempenho)',
+                'medium': 'Média (Equilibrado)',
+                'high': 'Alta (Melhor Visual)'
+            };
+            
+            // Get current quality
+            const currentQuality = localStorage.getItem('gameQuality') || 'medium';
+            
+            // Create radio buttons for each quality option
+            qualityOptions.forEach(quality => {
+                const container = document.createElement('div');
+                container.classList.add('quality-option');
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'quality';
+                radio.value = quality;
+                radio.id = `quality-${quality}`;
+                radio.checked = quality === currentQuality;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `quality-${quality}`;
+                label.textContent = qualityLabels[quality];
+                
+                container.appendChild(radio);
+                container.appendChild(label);
+                settingsMenu.appendChild(container);
+            });
+            
+            // Apply button
+            const applyButton = document.createElement('button');
+            applyButton.textContent = 'Aplicar';
+            applyButton.classList.add('menu-button');
+            applyButton.addEventListener('click', () => {
+                const selectedQuality = document.querySelector('input[name="quality"]:checked').value;
+                localStorage.setItem('gameQuality', selectedQuality);
+                alert('As configurações serão aplicadas após reiniciar o jogo.');
+                this.hideQualitySettings();
+            });
+            settingsMenu.appendChild(applyButton);
+            
+            // Back button
+            const backButton = document.createElement('button');
+            backButton.textContent = 'Voltar';
+            backButton.classList.add('menu-button');
+            backButton.addEventListener('click', () => this.hideQualitySettings());
+            settingsMenu.appendChild(backButton);
+        }
+        
+        // Show settings menu
+        settingsMenu.style.display = 'flex';
+    }
+    
+    hideQualitySettings() {
+        // Hide settings menu
+        const settingsMenu = document.getElementById('settings-menu');
+        if (settingsMenu) {
+            settingsMenu.style.display = 'none';
+        }
+        
+        // Show pause menu
+        const pauseMenu = document.getElementById('pause-menu');
+        if (pauseMenu) {
+            pauseMenu.style.display = 'flex';
+        }
+    }
 }

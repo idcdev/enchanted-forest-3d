@@ -10,16 +10,50 @@ import { InputHandler } from './utils/InputHandler.js';
 // Game initialization
 class Main {
     constructor() {
+        // Setup quality settings
+        this.qualitySettings = {
+            low: {
+                pixelRatio: 0.75,
+                antialias: false,
+                shadows: false,
+                shadowMapSize: 512,
+                maxLights: 0,
+                particleMultiplier: 0.3
+            },
+            medium: {
+                pixelRatio: 1.0,
+                antialias: true,
+                shadows: true,
+                shadowMapSize: 1024,
+                maxLights: 2,
+                particleMultiplier: 0.6
+            },
+            high: {
+                pixelRatio: Math.min(window.devicePixelRatio, 2),
+                antialias: true,
+                shadows: true,
+                shadowMapSize: 2048,
+                maxLights: 5,
+                particleMultiplier: 1.0
+            }
+        };
+        
+        // Default to medium quality
+        this.currentQuality = localStorage.getItem('gameQuality') || 'medium';
+        this.quality = this.qualitySettings[this.currentQuality];
+        
         // Setup loading screen
         this.loadingManager = new THREE.LoadingManager();
         this.setupLoadingManager();
         
-        // Setup renderer
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        // Setup renderer with quality settings
+        this.renderer = new THREE.WebGLRenderer({ 
+            antialias: this.quality.antialias 
+        });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        this.renderer.setPixelRatio(this.quality.pixelRatio);
+        this.renderer.shadowMap.enabled = this.quality.shadows;
+        this.renderer.shadowMap.type = THREE.PCFShadowMap; // Less demanding than PCFSoftShadowMap
         document.getElementById('game-container').appendChild(this.renderer.domElement);
         
         // Setup camera
@@ -138,27 +172,35 @@ class Main {
         // Directional light (sun)
         const directionalLight = new THREE.DirectionalLight(0xffffbb, 1);
         directionalLight.position.set(60, 100, 40);
-        directionalLight.castShadow = true;
-        directionalLight.shadow.camera.near = 1;
-        directionalLight.shadow.camera.far = 500;
-        directionalLight.shadow.camera.left = -50;
-        directionalLight.shadow.camera.right = 50;
-        directionalLight.shadow.camera.top = 50;
-        directionalLight.shadow.camera.bottom = -50;
-        directionalLight.shadow.mapSize.width = 2048;
-        directionalLight.shadow.mapSize.height = 2048;
+        
+        // Only enable shadows if quality settings allow it
+        if (this.quality.shadows) {
+            directionalLight.castShadow = true;
+            directionalLight.shadow.camera.near = 1;
+            directionalLight.shadow.camera.far = 500;
+            directionalLight.shadow.camera.left = -50;
+            directionalLight.shadow.camera.right = 50;
+            directionalLight.shadow.camera.top = 50;
+            directionalLight.shadow.camera.bottom = -50;
+            directionalLight.shadow.mapSize.width = this.quality.shadowMapSize;
+            directionalLight.shadow.mapSize.height = this.quality.shadowMapSize;
+        }
         this.scene.add(directionalLight);
         
-        // Add some point lights for magical atmosphere
-        const colors = [0x88ff88, 0xffaa88, 0x8888ff];
-        for (let i = 0; i < 3; i++) {
-            const pointLight = new THREE.PointLight(colors[i], 1, 20);
-            pointLight.position.set(
-                Math.random() * 40 - 20,
-                Math.random() * 5 + 2,
-                Math.random() * 40 - 20
-            );
-            this.scene.add(pointLight);
+        // Add point lights based on quality settings
+        if (this.quality.maxLights > 0) {
+            const colors = [0x88ff88, 0xffaa88, 0x8888ff];
+            const maxLights = Math.min(colors.length, this.quality.maxLights);
+            
+            for (let i = 0; i < maxLights; i++) {
+                const pointLight = new THREE.PointLight(colors[i], 1, 20);
+                pointLight.position.set(
+                    Math.random() * 40 - 20,
+                    Math.random() * 5 + 2,
+                    Math.random() * 40 - 20
+                );
+                this.scene.add(pointLight);
+            }
         }
     }
     

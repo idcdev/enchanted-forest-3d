@@ -87,24 +87,77 @@ export class Player {
     }
     
     update(deltaTime) {
-        // This method is now mostly handled by Game.update
-        // It remains here for compatibility, but most functionality has been moved
+        // Limit deltaTime to prevent physics issues on slow devices
+        const cappedDeltaTime = Math.min(deltaTime, 0.1);
         
-        // Handle any player-specific updates that aren't handled by Game
-        // For example, animations could be updated here
+        // Handle input and apply gravity
+        this.handleInput(cappedDeltaTime);
         
-        // Update attack cooldown
-        if (this.attackCooldown > 0) {
-            this.attackCooldown -= deltaTime;
+        // Apply gravity only if not flying
+        if (!this.isGrounded && !this.isFlying) {
+            // Apply gravity with a smoother effect
+            this.velocity.y -= this.gravity * cappedDeltaTime;
+        } else if (this.isFlying) {
+            // Apply a small amount of gravity even when flying to make it feel more natural
+            // This creates resistance that the player must overcome
+            this.velocity.y -= (this.gravity * 0.15) * cappedDeltaTime;
         }
         
-        // Update dash cooldown
-        if (this.dashCooldown > 0) {
-            this.dashCooldown -= deltaTime;
+        // Clamp velocity to prevent extreme values
+        const maxVelocity = 20;
+        this.velocity.x = Math.max(Math.min(this.velocity.x, maxVelocity), -maxVelocity);
+        this.velocity.y = Math.max(Math.min(this.velocity.y, maxVelocity), -maxVelocity);
+        this.velocity.z = Math.max(Math.min(this.velocity.z, maxVelocity), -maxVelocity);
+        
+        // Store previous position for collision detection
+        const previousPosition = this.position.clone();
+        
+        // Update position based on velocity
+        this.position.x += this.velocity.x * cappedDeltaTime;
+        this.position.y += this.velocity.y * cappedDeltaTime;
+        this.position.z += this.velocity.z * cappedDeltaTime;
+        
+        // Prevent falling through the world - safety check
+        if (this.position.y < -10) {
+            this.position.set(0, 5, 0); // Reset to a safe position above the ground
+            this.velocity.set(0, 0, 0);
         }
+        
+        // Check for ground collision first (only if not flying)
+        if (!this.isFlying) {
+            this.checkGrounded();
+        }
+        
+        // Update mesh and collider
+        this.mesh.position.copy(this.position);
+        this.mesh.rotation.copy(this.rotation);
+        this.updateCollider();
         
         // Update projectiles
-        this.updateProjectiles(deltaTime);
+        this.updateProjectiles(cappedDeltaTime);
+        
+        // Apply damping to velocity
+        this.velocity.x *= 0.9;
+        this.velocity.z *= 0.9;
+        
+        // Regenerate fuel when not flying
+        if (!this.isFlying && this.fuel < this.maxFuel) {
+            this.fuel = Math.min(this.fuel + this.fuelRegenerationRate * cappedDeltaTime, this.maxFuel);
+            this.canFly = true;
+        }
+        
+        // Reduce dash cooldown
+        if (this.dashCooldown > 0) {
+            this.dashCooldown -= cappedDeltaTime;
+        }
+        
+        // Handle dash duration
+        if (this.isDashing) {
+            this.dashDuration -= cappedDeltaTime;
+            if (this.dashDuration <= 0) {
+                this.isDashing = false;
+            }
+        }
     }
     
     handleInput(deltaTime) {
@@ -273,24 +326,30 @@ export class Player {
     }
     
     showFlyingEffect() {
-        // Create a simple particle effect for flying
-        // This is a placeholder for a more sophisticated effect
+        // Skip effect on low quality
+        if (!this.scene.parent || !this.scene.parent.quality) return;
+        
+        const quality = this.scene.parent.quality;
+        
+        // Create flying particles if they don't exist
         if (!this.flyingParticles) {
+            // Number of particles based on quality
+            const particleCount = Math.floor(50 * quality.particleMultiplier);
+            
             const particleGeometry = new THREE.BufferGeometry();
-            const particleCount = 20;
-            const positions = new Float32Array(particleCount * 3);
+            const particlePositions = new Float32Array(particleCount * 3);
             
             for (let i = 0; i < particleCount; i++) {
                 const i3 = i * 3;
-                positions[i3] = (Math.random() - 0.5) * 0.5;
-                positions[i3 + 1] = -0.8; // Below the player
-                positions[i3 + 2] = (Math.random() - 0.5) * 0.5;
+                particlePositions[i3] = (Math.random() - 0.5) * 0.5;
+                particlePositions[i3 + 1] = (Math.random() - 0.5) * 0.5 - 0.5; // Below player
+                particlePositions[i3 + 2] = (Math.random() - 0.5) * 0.5;
             }
             
-            particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+            particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
             
             const particleMaterial = new THREE.PointsMaterial({
-                color: 0x88ccff,
+                color: 0x3f51b5,
                 size: 0.1,
                 transparent: true,
                 opacity: 0.8
@@ -477,42 +536,53 @@ export class Player {
     }
     
     showDashEffect() {
+        // Skip effect on low quality
+        if (!this.scene.parent || !this.scene.parent.quality) return;
+        
+        const quality = this.scene.parent.quality;
+        
         // Create a simple dash effect with particles
-        const particleCount = 20;
-        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
-        const particleMaterial = new THREE.MeshBasicMaterial({ 
-            color: 0x00ffff,
-            transparent: true,
-            opacity: 0.7
-        });
+        const particleCount = Math.floor(20 * quality.particleMultiplier);
+        const particles = [];
         
         for (let i = 0; i < particleCount; i++) {
-            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
-            particle.position.copy(this.mesh.position);
+            const particle = new THREE.Mesh(
+                new THREE.SphereGeometry(0.05, 4, 4),
+                new THREE.MeshBasicMaterial({
+                    color: 0x3f51b5,
+                    transparent: true,
+                    opacity: 0.8
+                })
+            );
             
-            // Add random offset
+            // Position particle at player's position with slight randomness
+            particle.position.copy(this.position);
             particle.position.x += (Math.random() - 0.5) * 0.5;
             particle.position.y += (Math.random() - 0.5) * 0.5;
             particle.position.z += (Math.random() - 0.5) * 0.5;
             
+            // Store velocity for animation
+            particle.velocity = new THREE.Vector3(
+                (Math.random() - 0.5) * 0.2 - this.dashDirection.x * 0.3,
+                (Math.random() - 0.5) * 0.2,
+                (Math.random() - 0.5) * 0.2 - this.dashDirection.z * 0.3
+            );
+            
+            // Add to scene
             this.scene.add(particle);
+            particles.push(particle);
             
-            // Animate and remove particle
-            const direction = new THREE.Vector3(
-                (Math.random() - 0.5) * 2,
-                (Math.random() - 0.5) * 2,
-                (Math.random() - 0.5) * 2
-            ).normalize();
-            
-            // Use setTimeout for simple animation
+            // Animate and remove after a short time
             const animateParticle = () => {
-                particle.position.add(direction.multiplyScalar(-0.1));
-                particle.material.opacity -= 0.05;
-                
                 if (particle.material.opacity <= 0) {
                     this.scene.remove(particle);
+                    particle.geometry.dispose();
+                    particle.material.dispose();
                     return;
                 }
+                
+                particle.position.add(particle.velocity);
+                particle.material.opacity -= 0.02;
                 
                 requestAnimationFrame(animateParticle);
             };
