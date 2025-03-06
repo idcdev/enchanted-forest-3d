@@ -17,9 +17,32 @@
                 <p id="loading-text">Loading...</p>
                 <div class="controls-info">
                     <h3>Controls:</h3>
-                    <p>WASD or Arrow Keys - Move</p>
-                    <p>Space - Fly (Hold to activate flight)</p>
-                    <p>Shift - Sprint</p>
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="key">WASD</span>
+                            <span class="action">Move</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">SPACE</span>
+                            <span class="action">Fly</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">SHIFT</span>
+                            <span class="action">Sprint</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">E</span>
+                            <span class="action">Dash</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Q</span>
+                            <span class="action">Attack</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">ESC</span>
+                            <span class="action">Pause</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -38,6 +61,24 @@
                     <div id="fuel-bar"></div>
                 </div>
             </div>
+            
+            <div id="controls-display">
+                <div class="control-icon" title="Move: WASD or Arrow Keys">
+                    <span>WASD</span>
+                </div>
+                <div class="control-icon" title="Fly: Hold SPACE">
+                    <span>SPACE</span>
+                </div>
+                <div class="control-icon" title="Sprint: Hold SHIFT">
+                    <span>SHIFT</span>
+                </div>
+                <div class="control-icon" title="Dash: Press E">
+                    <span>E</span>
+                </div>
+                <div class="control-icon" title="Attack: Press Q">
+                    <span>Q</span>
+                </div>
+            </div>
         </div>
         
         <div id="game-over" class="overlay">
@@ -53,6 +94,42 @@
                 <h2>Level Complete!</h2>
                 <p>You've collected <span id="final-crystals">0</span> crystals and <span id="final-seeds">0</span> seeds.</p>
                 <button id="next-level-button">Next Level</button>
+            </div>
+        </div>
+        
+        <div id="pause-menu" class="overlay">
+            <div class="overlay-content">
+                <h2>Game Paused</h2>
+                <div class="controls-info">
+                    <h3>Controls:</h3>
+                    <div class="controls-grid">
+                        <div class="control-item">
+                            <span class="key">WASD</span>
+                            <span class="action">Move</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">SPACE</span>
+                            <span class="action">Fly</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">SHIFT</span>
+                            <span class="action">Sprint</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">E</span>
+                            <span class="action">Dash</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">Q</span>
+                            <span class="action">Attack</span>
+                        </div>
+                        <div class="control-item">
+                            <span class="key">ESC</span>
+                            <span class="action">Resume</span>
+                        </div>
+                    </div>
+                </div>
+                <button id="resume-button">Resume</button>
             </div>
         </div>
     </div>

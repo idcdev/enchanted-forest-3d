@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### Melhorias na Interface de Usuário
+- Adicionada exibição permanente dos controles na tela de jogo
+- Implementado sistema de dicas que destaca os controles quando usados pela primeira vez
+- Melhorado o menu de pausa com exibição clara dos controles
+- Redesenhada a tela de carregamento com layout mais organizado dos controles
+
+### Novas Mecânicas de Jogabilidade
+- Adicionado sistema de ataque básico (tecla Q)
+- Implementado efeito visual de cone de ataque e partículas
+- Adicionado sistema de detecção de inimigos no cone de ataque
+- Adicionado sistema de dash/impulso (tecla E)
+- Implementado efeito visual de partículas durante o dash
+- Adicionado cooldown para balancear o uso do dash
+
 ### Alterações de Controle
 - Removida a mecânica de pulo
 - Alterado o controle de voo da tecla F para a barra de espaço

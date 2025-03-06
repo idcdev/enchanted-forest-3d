@@ -12,6 +12,17 @@ export class UI {
         this.levelCompleteScreen = document.getElementById('level-complete');
         this.finalCrystals = document.getElementById('final-crystals');
         this.finalSeeds = document.getElementById('final-seeds');
+        this.controlsDisplay = document.getElementById('controls-display');
+        
+        // Setup event listeners for key tips
+        this.setupEventListeners();
+    }
+    
+    setupEventListeners() {
+        // Listen for key tip events
+        window.addEventListener('showKeyTip', (event) => {
+            this.showKeyTip(event.detail.key, event.detail.description);
+        });
     }
     
     updateLoadingProgress(progress) {
@@ -111,5 +122,44 @@ export class UI {
                 messageElement.remove();
             }, 500);
         }, duration);
+    }
+    
+    showKeyTip(key, description) {
+        // Find the corresponding control icon
+        let controlIcon;
+        
+        switch(key) {
+            case 'forward':
+            case 'backward':
+            case 'left':
+            case 'right':
+                controlIcon = this.controlsDisplay.querySelector('.control-icon:nth-child(1)'); // WASD
+                break;
+            case 'jump':
+                controlIcon = this.controlsDisplay.querySelector('.control-icon:nth-child(2)'); // SPACE
+                break;
+            case 'sprint':
+                controlIcon = this.controlsDisplay.querySelector('.control-icon:nth-child(3)'); // SHIFT
+                break;
+            case 'action':
+                controlIcon = this.controlsDisplay.querySelector('.control-icon:nth-child(4)'); // E
+                break;
+            case 'attack':
+                controlIcon = this.controlsDisplay.querySelector('.control-icon:nth-child(5)'); // Q
+                break;
+        }
+        
+        if (controlIcon) {
+            // Highlight the control icon
+            controlIcon.classList.add('highlight');
+            
+            // Show the tip
+            this.showMessage(`${description}`, 3000);
+            
+            // Remove highlight after a delay
+            setTimeout(() => {
+                controlIcon.classList.remove('highlight');
+            }, 3000);
+        }
     }
 }

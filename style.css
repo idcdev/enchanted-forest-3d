@@ -215,4 +215,120 @@ canvas {
 
 .overlay-content button:hover {
     background-color: #7cdc7c;
+}
+
+/* Controls Grid */
+.controls-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.control-item {
+    display: flex;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.4);
+    border-radius: 5px;
+    padding: 5px;
+}
+
+.key {
+    background-color: #90ee90;
+    color: #000;
+    padding: 3px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    margin-right: 8px;
+    min-width: 40px;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.action {
+    color: #fff;
+    font-size: 0.8rem;
+}
+
+/* Controls Display in Game */
+#controls-display {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 10px;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 10px;
+    z-index: 10;
+}
+
+.control-icon {
+    width: 40px;
+    height: 40px;
+    background-color: rgba(0, 0, 0, 0.6);
+    border: 2px solid #90ee90;
+    border-radius: 5px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-weight: bold;
+    font-size: 0.7rem;
+    cursor: help;
+    transition: all 0.2s ease;
+}
+
+.control-icon:hover {
+    background-color: rgba(144, 238, 144, 0.3);
+    transform: scale(1.1);
+}
+
+.control-icon.highlight {
+    animation: pulse-highlight 1.5s infinite;
+    background-color: rgba(144, 238, 144, 0.5);
+    transform: scale(1.2);
+}
+
+@keyframes pulse-highlight {
+    0% {
+        box-shadow: 0 0 0 0 rgba(144, 238, 144, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(144, 238, 144, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(144, 238, 144, 0);
+    }
+}
+
+/* Pause Menu */
+#pause-menu {
+    background-color: rgba(0, 0, 0, 0.8);
+    display: none; /* Initially hidden */
+}
+
+#pause-menu .overlay-content {
+    max-width: 500px;
+}
+
+#pause-menu .controls-info {
+    max-width: 100%;
+    margin-bottom: 20px;
+}
+
+#resume-button {
+    background-color: #90ee90;
+    color: #000;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+#resume-button:hover {
+    background-color: #7ccc7c;
+    transform: scale(1.05);
 } 

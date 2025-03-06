@@ -12,6 +12,8 @@ A 3D platform game built with Three.js where players navigate through an enchant
 - Immersive audio system with background music and sound effects
 - Multiple levels with increasing difficulty
 - Special platform types: moving platforms and disappearing platforms
+- Intuitive user interface with visible controls and interactive tips
+- Combat system with attack mechanics and enemy interactions
 
 ## How to Run
 
@@ -32,6 +34,18 @@ npm run dev
 - WASD or Arrow Keys: Move
 - Space: Fly (hold to activate flight)
 - Shift: Sprint
+- E: Dash (quick burst of speed)
+- Q: Attack (damage enemies in front)
+- ESC: Pause game
+
+## User Interface
+
+The game features an intuitive user interface with:
+- Permanently visible control icons for quick reference
+- Interactive tips that highlight controls when used for the first time
+- Comprehensive pause menu with control information
+- Health and fuel indicators with color-coded status
+- Score counters for crystals and seeds collected
 
 ## Level System
 
@@ -76,4 +90,4 @@ This game is built using:
 - `src/audio/` - Audio system documentation
 - `src/models/` - 3D models documentation
 - `src/textures/` - Textures documentation
-- `public/` - Static assets (audio, models, textures) 
+- `public/` - Static assets (audio, models, textures)

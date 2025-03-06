@@ -59,11 +59,28 @@ export class Game {
             this.nextLevel();
         });
         
+        // Resume button
+        document.getElementById('resume-button').addEventListener('click', () => {
+            // Play button click sound
+            this.player.assetLoader.playSound('buttonClick');
+            this.togglePause();
+        });
+        
         // Pause game on 'Escape' key
         window.addEventListener('keydown', (event) => {
             if (event.key === 'Escape') {
                 this.togglePause();
             }
+        });
+        
+        // Listen for player attack events
+        window.addEventListener('playerAttack', (event) => {
+            this.handlePlayerAttack(event.detail);
+        });
+        
+        // Listen for enemy death events
+        window.addEventListener('enemyDeath', (event) => {
+            this.handleEnemyDeath(event.detail);
         });
     }
     
@@ -254,12 +271,27 @@ export class Game {
     togglePause() {
         this.state.isPaused = !this.state.isPaused;
         
+        // Show/hide pause menu
+        const pauseMenu = document.getElementById('pause-menu');
         if (this.state.isPaused) {
+            pauseMenu.style.display = 'flex';
+            // Play pause sound
+            this.player.assetLoader.playSound('buttonClick');
+            // Stop the clock
             this.clock.stop();
-            // Show pause menu (could be implemented later)
         } else {
+            pauseMenu.style.display = 'none';
+            // Play resume sound
+            this.player.assetLoader.playSound('buttonClick');
+            // Start the clock
             this.clock.start();
-            // Hide pause menu
+        }
+        
+        // Show message
+        if (this.state.isPaused) {
+            this.ui.showMessage("Game Paused", 2000);
+        } else {
+            this.ui.showMessage("Game Resumed", 2000);
         }
     }
     
@@ -340,5 +372,133 @@ export class Game {
         
         // Show level info
         this.showLevelInfo();
+    }
+    
+    // Add new method to handle player attacks
+    handlePlayerAttack(attackData) {
+        if (this.state.isPaused || this.state.isGameOver || this.state.isLevelComplete) {
+            return;
+        }
+        
+        const enemies = this.level.getEnemies();
+        const playerPosition = attackData.position;
+        const attackDirection = attackData.direction;
+        const attackRange = attackData.range;
+        const attackAngle = attackData.angle;
+        const attackDamage = attackData.damage;
+        
+        // Check each enemy to see if it's within the attack cone
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            const enemyPosition = enemy.position.clone();
+            
+            // Calculate vector from player to enemy
+            const toEnemy = new THREE.Vector3().subVectors(enemyPosition, playerPosition);
+            
+            // Check if enemy is within range
+            const distance = toEnemy.length();
+            if (distance > attackRange) {
+                continue; // Enemy is too far away
+            }
+            
+            // Normalize the vectors for angle calculation
+            toEnemy.normalize();
+            
+            // Calculate the angle between attack direction and direction to enemy
+            const dot = attackDirection.dot(toEnemy);
+            const angle = Math.acos(dot);
+            
+            // Check if enemy is within the attack angle
+            if (angle <= attackAngle / 2) {
+                // Enemy is hit!
+                enemy.takeDamage(attackDamage);
+                
+                // Apply knockback to the enemy
+                const knockbackDirection = toEnemy.multiplyScalar(3);
+                enemy.applyKnockback(knockbackDirection);
+                
+                // Play attack hit sound
+                this.player.assetLoader.playSound('attackHit');
+                
+                // Show hit effect
+                this.showHitEffect(enemyPosition);
+            }
+        }
+    }
+    
+    showHitEffect(position) {
+        // Create a simple hit effect with particles
+        const particleCount = 10;
+        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            particle.position.copy(position);
+            
+            // Add random offset
+            particle.position.x += (Math.random() - 0.5) * 0.5;
+            particle.position.y += (Math.random() - 0.5) * 0.5 + 0.5; // Raise slightly
+            particle.position.z += (Math.random() - 0.5) * 0.5;
+            
+            this.scene.add(particle);
+            
+            // Animate and remove particle
+            const direction = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2 + 1, // Bias upward
+                (Math.random() - 0.5) * 2
+            ).normalize();
+            
+            const speed = 0.05 + Math.random() * 0.1;
+            
+            const animateParticle = () => {
+                particle.position.add(direction.clone().multiplyScalar(speed));
+                particle.material.opacity -= 0.05;
+                
+                if (particle.material.opacity <= 0) {
+                    this.scene.remove(particle);
+                    return;
+                }
+                
+                requestAnimationFrame(animateParticle);
+            };
+            
+            animateParticle();
+        }
+    }
+    
+    // Add new method to handle enemy deaths
+    handleEnemyDeath(deathData) {
+        // Increase score
+        this.state.score.crystals += 1;
+        
+        // Update UI
+        this.updateUI();
+        
+        // Show message
+        this.ui.showMessage("Enemy defeated! +1 Crystal", 2000);
+        
+        // Check if all enemies are defeated
+        if (this.level.getEnemies().length === 0) {
+            // Show message
+            this.ui.showMessage("All enemies defeated!", 3000);
+            
+            // Add bonus crystals
+            const bonus = 5;
+            this.state.score.crystals += bonus;
+            
+            // Update UI
+            this.updateUI();
+            
+            // Show bonus message
+            setTimeout(() => {
+                this.ui.showMessage(`Bonus: +${bonus} Crystals!`, 2000);
+            }, 3000);
+        }
     }
 } 

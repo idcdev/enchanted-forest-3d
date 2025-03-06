@@ -119,32 +119,33 @@ export class AssetLoader {
     }
     
     loadSounds() {
-        if (!this.audioListener) {
-            console.warn('Audio system not initialized, skipping sound loading');
+        // Check if audio is supported
+        if (!this.audioContext || !this.audioListener) {
+            console.warn('Audio not supported, skipping sound loading');
             return;
         }
         
+        // Create audio loader
         const audioLoader = new THREE.AudioLoader(this.loadingManager);
         
-        // Define sounds to load
+        // Define sound files
         const soundFiles = {
-            // Background music
-            'bgm': '/audio/background_music.mp3',
-            
             // Player sounds
-            'jump': '/audio/jump.mp3',
-            'doubleJump': '/audio/double_jump.mp3',
-            'fly': '/audio/fly.mp3',
-            'land': '/audio/land.mp3',
-            'damage': '/audio/damage.mp3',
-            
-            // Collectible sounds
-            'collectCrystal': '/audio/collect_crystal.mp3',
-            'collectSeed': '/audio/collect_seed.mp3',
+            'playerJump': '/audio/player_jump.mp3',
+            'playerLand': '/audio/player_land.mp3',
+            'playerDamage': '/audio/player_damage.mp3',
+            'playerFly': '/audio/player_fly.mp3',
+            'attackSwing': '/audio/attack_swing.mp3',
+            'attackHit': '/audio/attack_hit.mp3',
             
             // Enemy sounds
             'enemyDetect': '/audio/enemy_detect.mp3',
             'enemyAttack': '/audio/enemy_attack.mp3',
+            'enemyDeath': '/audio/enemy_death.mp3',
+            
+            // Collectible sounds
+            'collectCrystal': '/audio/collect_crystal.mp3',
+            'collectSeed': '/audio/collect_seed.mp3',
             
             // UI sounds
             'buttonClick': '/audio/button_click.mp3',

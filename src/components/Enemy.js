@@ -19,6 +19,18 @@ export class Enemy {
         this.isChasing = false;
         this.hasDetectedPlayer = false;
         
+        // Health and damage
+        this.maxHealth = 3;
+        this.health = this.maxHealth;
+        this.isInvulnerable = false;
+        this.invulnerabilityTime = 0.5; // seconds
+        this.invulnerabilityTimer = 0;
+        
+        // Knockback
+        this.isKnockedBack = false;
+        this.knockbackDuration = 0;
+        this.knockbackRecoveryTime = 0.3; // seconds
+        
         // Patrol variables
         this.patrolAngle = Math.random() * Math.PI * 2;
         this.patrolSpeed = 0.5;
@@ -88,6 +100,33 @@ export class Enemy {
     }
     
     update(deltaTime, player) {
+        // Update invulnerability timer
+        if (this.isInvulnerable) {
+            this.invulnerabilityTimer -= deltaTime;
+            if (this.invulnerabilityTimer <= 0) {
+                this.isInvulnerable = false;
+                this.hideInvulnerabilityEffect();
+            }
+        }
+        
+        // Update knockback
+        if (this.isKnockedBack) {
+            this.knockbackDuration -= deltaTime;
+            if (this.knockbackDuration <= 0) {
+                this.isKnockedBack = false;
+            } else {
+                // Apply knockback velocity
+                this.position.x += this.velocity.x * deltaTime;
+                this.position.y += this.velocity.y * deltaTime;
+                this.position.z += this.velocity.z * deltaTime;
+                
+                // Update mesh position
+                this.mesh.position.copy(this.position);
+                this.updateCollider();
+                return; // Skip normal movement while knocked back
+            }
+        }
+        
         // Check distance to player
         const distanceToPlayer = this.position.distanceTo(player.position);
         
@@ -102,16 +141,12 @@ export class Enemy {
                     this.hasDetectedPlayer = true;
                 }
             }
+            
             this.chasePlayer(player, deltaTime);
         } else {
-            // Player is out of range, return to patrolling
+            // Player is out of range, patrol
             this.isChasing = false;
             this.patrol(deltaTime);
-            
-            // Reset detection flag when player is far away
-            if (distanceToPlayer > this.detectionRadius * 1.5) {
-                this.hasDetectedPlayer = false;
-            }
         }
         
         // Update position based on velocity
@@ -204,5 +239,122 @@ export class Enemy {
     remove() {
         // Remove from scene
         this.scene.remove(this.mesh);
+    }
+    
+    // Add new methods for damage and knockback
+    takeDamage(damage) {
+        if (this.isInvulnerable) return;
+        
+        this.health -= damage;
+        this.isInvulnerable = true;
+        this.invulnerabilityTimer = this.invulnerabilityTime;
+        
+        // Show damage effect
+        this.showDamageEffect();
+        
+        // Check if enemy is defeated
+        if (this.health <= 0) {
+            this.die();
+        }
+    }
+    
+    applyKnockback(direction) {
+        this.isKnockedBack = true;
+        this.knockbackDuration = this.knockbackRecoveryTime;
+        
+        // Set velocity based on knockback direction
+        this.velocity.copy(direction);
+    }
+    
+    showDamageEffect() {
+        // Flash the enemy red
+        const originalMaterials = [];
+        this.mesh.traverse((child) => {
+            if (child.isMesh && child.material) {
+                originalMaterials.push({
+                    mesh: child,
+                    material: child.material
+                });
+                
+                // Create a red material
+                child.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            }
+        });
+        
+        // Reset materials after a short delay
+        setTimeout(() => {
+            originalMaterials.forEach(item => {
+                if (item.mesh) {
+                    item.mesh.material = item.material;
+                }
+            });
+        }, 100);
+    }
+    
+    hideInvulnerabilityEffect() {
+        // Reset any visual effects from invulnerability
+        // Currently just using the damage flash effect
+    }
+    
+    die() {
+        // Create death particles
+        const particleCount = 20;
+        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({
+            color: 0x4e342e,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            particle.position.copy(this.position);
+            
+            // Add random offset
+            particle.position.x += (Math.random() - 0.5) * 1;
+            particle.position.y += (Math.random() - 0.5) * 1;
+            particle.position.z += (Math.random() - 0.5) * 1;
+            
+            this.scene.add(particle);
+            
+            // Animate and remove particle
+            const direction = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2 + 1, // Bias upward
+                (Math.random() - 0.5) * 2
+            ).normalize();
+            
+            const speed = 0.05 + Math.random() * 0.1;
+            
+            const animateParticle = () => {
+                particle.position.add(direction.clone().multiplyScalar(speed));
+                particle.material.opacity -= 0.02;
+                
+                if (particle.material.opacity <= 0) {
+                    this.scene.remove(particle);
+                    return;
+                }
+                
+                requestAnimationFrame(animateParticle);
+            };
+            
+            animateParticle();
+        }
+        
+        // Play death sound
+        if (this.assetLoader) {
+            this.assetLoader.playSound('enemyDeath');
+        }
+        
+        // Remove enemy from scene
+        this.remove();
+        
+        // Emit death event for the Game class to handle
+        const deathEvent = new CustomEvent('enemyDeath', {
+            detail: {
+                position: this.position.clone()
+            }
+        });
+        window.dispatchEvent(deathEvent);
     }
 } 

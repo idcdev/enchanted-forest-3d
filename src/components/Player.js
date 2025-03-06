@@ -35,6 +35,26 @@ export class Player {
         this.jumpForce = 12; // Reduzido para um pulo mais controlável
         this.gravity = 22;   // Ajustado para uma queda mais natural
         
+        // Dash properties
+        this.isDashing = false;
+        this.dashCooldown = 0;
+        this.dashDuration = 0;
+        this.dashDirection = new THREE.Vector3();
+        this.dashSpeed = 30;
+        this.dashCooldownTime = 1.5; // seconds
+        this.dashDurationTime = 0.2; // seconds
+        
+        // Attack properties
+        this.isAttacking = false;
+        this.attackCooldown = 0;
+        this.attackDuration = 0;
+        this.attackCooldownTime = 0.5; // seconds
+        this.attackDurationTime = 0.3; // seconds
+        this.attackDamage = 1;
+        this.attackRange = 2.5;
+        this.attackAngle = Math.PI / 2; // 90 degrees cone in front
+        this.attackEffect = null;
+        
         // Create player mesh
         this.createPlayerMesh();
         
@@ -74,9 +94,55 @@ export class Player {
         // Get input state
         const input = this.inputHandler.getInput();
         
-        // Calculate movement direction
+        // Reset direction
         this.direction.set(0, 0, 0);
         
+        // Handle attack input
+        if (input.attack && this.attackCooldown <= 0 && !this.isAttacking) {
+            this.performAttack();
+        }
+        
+        // Update attack cooldown and duration
+        if (this.attackCooldown > 0) {
+            this.attackCooldown -= deltaTime;
+        }
+        
+        if (this.isAttacking) {
+            this.attackDuration -= deltaTime;
+            
+            if (this.attackDuration <= 0) {
+                this.isAttacking = false;
+                this.removeAttackEffect();
+            }
+        }
+        
+        // Handle dash input
+        if (input.action && this.dashCooldown <= 0 && !this.isDashing) {
+            this.performDash();
+        }
+        
+        // Update dash cooldown
+        if (this.dashCooldown > 0) {
+            this.dashCooldown -= deltaTime;
+        }
+        
+        // If dashing, update dash duration and apply dash velocity
+        if (this.isDashing) {
+            this.dashDuration -= deltaTime;
+            
+            if (this.dashDuration <= 0) {
+                this.isDashing = false;
+                // Reset velocity after dash
+                this.velocity.x *= 0.2;
+                this.velocity.z *= 0.2;
+            } else {
+                // Apply dash velocity
+                this.velocity.copy(this.dashDirection.multiplyScalar(this.dashSpeed));
+                return; // Skip normal movement while dashing
+            }
+        }
+        
+        // Normal movement controls
         if (input.forward) this.direction.z -= 1;
         if (input.backward) this.direction.z += 1;
         if (input.left) this.direction.x -= 1;
@@ -342,5 +408,216 @@ export class Player {
         
         // Hide flying effect
         this.hideFlyingEffect();
+    }
+    
+    // Add new method for dash
+    performDash() {
+        this.isDashing = true;
+        this.dashDuration = this.dashDurationTime;
+        this.dashCooldown = this.dashCooldownTime;
+        
+        // Set dash direction based on current input
+        const input = this.inputHandler.getInput();
+        this.dashDirection.set(0, 0, 0);
+        
+        if (input.forward) this.dashDirection.z -= 1;
+        if (input.backward) this.dashDirection.z += 1;
+        if (input.left) this.dashDirection.x -= 1;
+        if (input.right) this.dashDirection.x += 1;
+        
+        // If no direction input, dash forward
+        if (this.dashDirection.length() === 0) {
+            this.dashDirection.z = -1;
+        }
+        
+        // Normalize direction
+        this.dashDirection.normalize();
+        
+        // Apply camera rotation to dash direction
+        const cameraDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(cameraDirection);
+        cameraDirection.y = 0;
+        cameraDirection.normalize();
+        
+        const dashQuat = new THREE.Quaternion();
+        dashQuat.setFromUnitVectors(new THREE.Vector3(0, 0, -1), cameraDirection);
+        this.dashDirection.applyQuaternion(dashQuat);
+        
+        // Show dash effect
+        this.showDashEffect();
+    }
+    
+    showDashEffect() {
+        // Create a simple dash effect with particles
+        const particleCount = 20;
+        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({ 
+            color: 0x00ffff,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            particle.position.copy(this.mesh.position);
+            
+            // Add random offset
+            particle.position.x += (Math.random() - 0.5) * 0.5;
+            particle.position.y += (Math.random() - 0.5) * 0.5;
+            particle.position.z += (Math.random() - 0.5) * 0.5;
+            
+            this.scene.add(particle);
+            
+            // Animate and remove particle
+            const direction = new THREE.Vector3(
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2,
+                (Math.random() - 0.5) * 2
+            ).normalize();
+            
+            // Use setTimeout for simple animation
+            const animateParticle = () => {
+                particle.position.add(direction.multiplyScalar(-0.1));
+                particle.material.opacity -= 0.05;
+                
+                if (particle.material.opacity <= 0) {
+                    this.scene.remove(particle);
+                    return;
+                }
+                
+                requestAnimationFrame(animateParticle);
+            };
+            
+            animateParticle();
+        }
+    }
+    
+    // Add new method for attack
+    performAttack() {
+        this.isAttacking = true;
+        this.attackDuration = this.attackDurationTime;
+        this.attackCooldown = this.attackCooldownTime;
+        
+        // Play attack sound
+        this.assetLoader.playSound('attackSwing');
+        
+        // Show attack effect
+        this.showAttackEffect();
+        
+        // Get camera direction for attack direction
+        const attackDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(attackDirection);
+        attackDirection.y = 0;
+        attackDirection.normalize();
+        
+        // Check for enemies in attack range and angle
+        // This would need to be implemented in the Game class to check collisions with enemies
+        // For now, we'll just show the visual effect
+        
+        // Emit attack event that Game class can listen for
+        const attackEvent = new CustomEvent('playerAttack', {
+            detail: {
+                position: this.mesh.position.clone(),
+                direction: attackDirection,
+                range: this.attackRange,
+                angle: this.attackAngle,
+                damage: this.attackDamage
+            }
+        });
+        window.dispatchEvent(attackEvent);
+    }
+    
+    showAttackEffect() {
+        // Create a cone to represent the attack area
+        const coneGeometry = new THREE.ConeGeometry(this.attackRange, this.attackRange, 32);
+        const coneMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff0000,
+            transparent: true,
+            opacity: 0.3
+        });
+        
+        // Create the attack effect mesh
+        this.attackEffect = new THREE.Mesh(coneGeometry, coneMaterial);
+        
+        // Position and rotate the cone to match the player's position and facing direction
+        this.attackEffect.position.copy(this.mesh.position);
+        this.attackEffect.position.y += 0.5; // Raise slightly above ground
+        
+        // Rotate the cone to point forward (cone points up by default)
+        this.attackEffect.rotation.x = Math.PI / 2;
+        
+        // Get camera direction for attack direction
+        const attackDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(attackDirection);
+        attackDirection.y = 0;
+        attackDirection.normalize();
+        
+        // Create a quaternion to rotate the cone to face the camera direction
+        const quaternion = new THREE.Quaternion();
+        quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), attackDirection);
+        
+        // Apply the quaternion to the cone's rotation
+        this.attackEffect.quaternion.premultiply(quaternion);
+        
+        // Add the attack effect to the scene
+        this.scene.add(this.attackEffect);
+        
+        // Create particle effect for the attack
+        const particleCount = 15;
+        const particleGeometry = new THREE.SphereGeometry(0.1, 8, 8);
+        const particleMaterial = new THREE.MeshBasicMaterial({
+            color: 0xff5500,
+            transparent: true,
+            opacity: 0.7
+        });
+        
+        for (let i = 0; i < particleCount; i++) {
+            const particle = new THREE.Mesh(particleGeometry, particleMaterial);
+            
+            // Position particle at the player's position
+            particle.position.copy(this.mesh.position);
+            
+            // Calculate a random position within the attack cone
+            const angle = (Math.random() - 0.5) * this.attackAngle;
+            const distance = Math.random() * this.attackRange;
+            
+            // Create a direction vector based on the camera direction and random angle
+            const particleDirection = attackDirection.clone();
+            
+            // Create a rotation axis perpendicular to the attack direction
+            const rotationAxis = new THREE.Vector3(0, 1, 0);
+            
+            // Rotate the particle direction around the rotation axis by the random angle
+            particleDirection.applyAxisAngle(rotationAxis, angle);
+            
+            // Move the particle along the direction by the random distance
+            particle.position.add(particleDirection.multiplyScalar(distance));
+            
+            // Add some height variation
+            particle.position.y += 0.5 + Math.random() * 0.5;
+            
+            this.scene.add(particle);
+            
+            // Animate and remove particle
+            const animateParticle = () => {
+                particle.material.opacity -= 0.05;
+                
+                if (particle.material.opacity <= 0) {
+                    this.scene.remove(particle);
+                    return;
+                }
+                
+                requestAnimationFrame(animateParticle);
+            };
+            
+            animateParticle();
+        }
+    }
+    
+    removeAttackEffect() {
+        if (this.attackEffect) {
+            this.scene.remove(this.attackEffect);
+            this.attackEffect = null;
+        }
     }
 } 
