@@ -142,6 +142,11 @@ export class Game {
         // Update player
         this.player.update(deltaTime);
         
+        // Check platform collisions (only if not flying)
+        if (!this.player.isFlying) {
+            this.level.checkPlatformCollisions(this.player);
+        }
+        
         // Update level (platforms, enemies, collectibles)
         this.level.update(deltaTime, this.player);
         
@@ -244,14 +249,14 @@ export class Game {
     }
     
     updateUI() {
-        // Update score display
+        // Update score
         this.ui.updateScore(this.state.score.crystals, this.state.score.seeds);
         
         // Update health bar
         this.ui.updateHealth(this.state.health);
         
-        // Update fuel bar (new)
-        this.ui.updateFuel(this.player.currentFuel, this.player.maxFuel);
+        // Update fuel bar
+        this.ui.updateFuel(this.player.fuel, this.player.maxFuel);
     }
     
     checkGameConditions() {

@@ -202,57 +202,81 @@ export class Player {
             
             if (this.dashDuration <= 0) {
                 this.isDashing = false;
-                // Reset velocity after dash
-                this.velocity.x *= 0.2;
-                this.velocity.z *= 0.2;
             } else {
                 // Apply dash velocity
-                this.velocity.copy(this.dashDirection.multiplyScalar(this.dashSpeed));
+                this.velocity.x = this.dashDirection.x * this.dashSpeed;
+                this.velocity.z = this.dashDirection.z * this.dashSpeed;
                 return; // Skip normal movement while dashing
             }
         }
         
-        // Normal movement controls
-        if (input.forward) this.direction.z -= 1;
-        if (input.backward) this.direction.z += 1;
-        if (input.left) this.direction.x -= 1;
-        if (input.right) this.direction.x += 1;
-        
-        // Normalize direction vector
-        if (this.direction.length() > 0) {
-            this.direction.normalize();
-        }
-        
-        // Calculate velocity based on direction and move speed
-        const speed = input.sprint ? this.moveSpeed * 1.5 : this.moveSpeed;
-        
-        // Apply different speed if flying
-        if (this.isFlying) {
-            this.velocity.x = this.direction.x * this.flightSpeed;
-            this.velocity.z = this.direction.z * this.flightSpeed;
-        } else {
-            this.velocity.x = this.direction.x * speed;
-            this.velocity.z = this.direction.z * speed;
-        }
-        
-        // Handle flying with space bar
-        if (input.jump) {
+        // Handle flying input
+        if (input.jump && this.canFly) {
+            if (!this.isFlying) {
+                this.isFlying = true;
+                console.log('Special ability used - Flight activated');
+                
+                // Play flying sound
+                if (!this.flyingSoundPlaying) {
+                    this.assetLoader.playSound('fly', true);
+                    this.flyingSoundPlaying = true;
+                }
+                
+                // Show flying effect
+                this.showFlyingEffect();
+            }
+            
+            // Apply flight mechanics
             this.fly(deltaTime);
-        } else {
+        } else if (this.isFlying) {
+            // Stop flying when jump key is released
             this.stopFlying(deltaTime);
         }
         
-        // Update player rotation to face movement direction
+        // Calculate movement direction based on camera orientation
+        const cameraDirection = new THREE.Vector3();
+        this.camera.getWorldDirection(cameraDirection);
+        cameraDirection.y = 0;
+        cameraDirection.normalize();
+        
+        // Calculate right vector from camera direction
+        const right = new THREE.Vector3();
+        right.crossVectors(new THREE.Vector3(0, 1, 0), cameraDirection).normalize();
+        
+        // Apply movement based on input
+        if (input.forward) {
+            this.direction.add(cameraDirection);
+        }
+        if (input.backward) {
+            this.direction.sub(cameraDirection);
+        }
+        if (input.left) {
+            this.direction.add(right);
+        }
+        if (input.right) {
+            this.direction.sub(right);
+        }
+        
+        // Normalize direction if moving
         if (this.direction.length() > 0) {
+            this.direction.normalize();
+            
+            // Update player rotation to face movement direction
             const targetRotation = Math.atan2(this.direction.x, this.direction.z);
-            // Smoothly interpolate current rotation to target rotation
-            const rotationSpeed = 10;
-            const angleDiff = targetRotation - this.rotation.y;
-            
-            // Handle angle wrapping
-            let shortestAngle = ((angleDiff + Math.PI) % (Math.PI * 2)) - Math.PI;
-            
-            this.rotation.y += shortestAngle * rotationSpeed * deltaTime;
+            this.rotation.y = targetRotation;
+        }
+        
+        // Apply movement speed
+        const speed = this.isFlying ? this.flightSpeed : this.moveSpeed;
+        
+        // Apply movement velocity
+        if (this.direction.length() > 0) {
+            this.velocity.x = this.direction.x * speed;
+            this.velocity.z = this.direction.z * speed;
+        } else {
+            // Apply damping to velocity when not actively moving
+            this.velocity.x *= 0.9;
+            this.velocity.z *= 0.9;
         }
     }
     
@@ -264,41 +288,26 @@ export class Player {
     fly(deltaTime) {
         // Check if player has enough fuel to fly
         if (this.fuel > 0 && this.canFly) {
-            // Activate flying state
-            this.isFlying = true;
-            
-            // Apply upward force to counteract gravity and provide lift
-            // Limit maximum upward velocity to prevent infinite ascent
-            const maxUpwardVelocity = 7;
+            // Apply upward force for flying
             const targetVelocity = this.flightForce * deltaTime * 15; // Reduced multiplier
             
             // Gradually approach target velocity for smoother flight
-            this.velocity.y = Math.min(
-                this.velocity.y + targetVelocity,
-                maxUpwardVelocity
-            );
+            this.velocity.y += targetVelocity;
             
             // Consume fuel
             this.fuel -= this.fuelConsumptionRate * deltaTime;
             
-            // Create visual effect for flying
+            // Show flying effect
             this.showFlyingEffect();
-            
-            // Play flying sound if not already playing
-            if (!this.flyingSoundPlaying) {
-                this.assetLoader.playSound('fly', { loop: true });
-                this.flyingSoundPlaying = true;
-            }
             
             // If fuel is depleted, stop flying
             if (this.fuel <= 0) {
                 this.fuel = 0;
                 this.canFly = false;
-                this.isFlying = false;
                 this.stopFlying(deltaTime);
             }
         } else {
-            this.isFlying = false;
+            // Not enough fuel to fly
             this.stopFlying(deltaTime);
         }
     }
@@ -612,11 +621,24 @@ export class Player {
                 this.assetLoader.playSound('attackSwing');
         }
         
-        // Get camera direction for attack direction
-        const attackDirection = new THREE.Vector3();
-        this.camera.getWorldDirection(attackDirection);
-        attackDirection.y = 0;
-        attackDirection.normalize();
+        // Get attack direction based on player's movement direction or facing direction
+        let attackDirection = new THREE.Vector3();
+        
+        // If player is moving, use movement direction
+        if (this.direction.length() > 0) {
+            attackDirection.copy(this.direction).normalize();
+        } else {
+            // Otherwise use the direction the player is facing (based on camera)
+            this.camera.getWorldDirection(attackDirection);
+            attackDirection.y = 0;
+            attackDirection.normalize();
+        }
+        
+        // Update player rotation to face attack direction
+        if (attackDirection.length() > 0) {
+            const targetRotation = Math.atan2(attackDirection.x, attackDirection.z);
+            this.rotation.y = targetRotation;
+        }
         
         // Perform class-specific attack
         switch (this.playerClass) {
@@ -629,6 +651,9 @@ export class Player {
             case 'mage':
                 this.performMageAttack(attackDirection);
                 break;
+            default:
+                // Default attack
+                this.performWarriorAttack(attackDirection);
         }
         
         // Emit attack event that Game class can listen for
