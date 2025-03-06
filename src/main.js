@@ -82,8 +82,7 @@ class Main {
         };
         
         this.loadingManager.onError = (url) => {
-            console.error('Error loading asset:', url);
-            loadingText.textContent = 'Error loading assets. Please refresh the page.';
+            console.warn(`Non-critical error loading asset: ${url}`);
         };
     }
     
@@ -137,10 +136,13 @@ class Main {
         // Expose game instance globally
         window.game = this.game;
         
-        // Start background music if available
+        // Start background music if available (commented out to avoid errors)
+        // This can be uncommented when real sounds are available
+        /*
         if (this.assetLoader.sounds['bgm']) {
             this.assetLoader.playSound('bgm');
         }
+        */
         
         // Start animation loop
         this.animate();

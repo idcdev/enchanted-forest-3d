@@ -97,8 +97,15 @@ export class AssetLoader {
             seed: '/textures/seed.jpg'
         };
         
-        // Load each texture with fallback
+        // Use fallback textures for all defined textures
         for (const [name, path] of Object.entries(textureFiles)) {
+            // Set fallback texture immediately
+            this.textures[name] = this.fallbackTextures[name];
+            console.log(`Using fallback for texture: ${name}`);
+            
+            // Optionally try to load the real texture (commented out to avoid errors)
+            // This can be uncommented when real textures are available
+            /*
             try {
                 this.textureLoader.load(
                     path,
@@ -119,12 +126,13 @@ export class AssetLoader {
                 console.warn(`Error loading texture ${name}, using fallback`);
                 this.textures[name] = this.fallbackTextures[name];
             }
+            */
         }
     }
     
     loadModels() {
-        // In a full game, this would load 3D models using GLTFLoader
-        // For now, we're using simple geometries created in the component classes
+        // Placeholder for loading 3D models
+        console.log('Model loading not implemented yet');
     }
     
     loadSounds() {
@@ -134,10 +142,7 @@ export class AssetLoader {
             return;
         }
         
-        // Create audio loader
-        const audioLoader = new THREE.AudioLoader(this.loadingManager);
-        
-        // Define sound files
+        // Define sound files (for reference only, not actually loading them)
         const soundFiles = {
             // Player sounds
             'playerJump': '/audio/player_jump.mp3',
@@ -169,7 +174,10 @@ export class AssetLoader {
             'buttonClick': '/audio/button_click.mp3',
             'levelComplete': '/audio/level_complete.mp3',
             'gameOver': '/audio/game_over.mp3',
-            'classSelected': '/audio/class_selected.mp3'
+            'classSelected': '/audio/class_selected.mp3',
+            
+            // Background music
+            'bgm': '/audio/background_music.mp3'
         };
         
         // Create a silent buffer as fallback
@@ -183,8 +191,12 @@ export class AssetLoader {
         // Create silent sounds for all defined sounds
         for (const name of Object.keys(soundFiles)) {
             this.sounds[name] = createSilentBuffer();
+            console.log(`Created silent sound for: ${name}`);
         }
         
+        // Optionally try to load the real sounds (commented out to avoid errors)
+        // This can be uncommented when real sounds are available
+        /*
         // Try to load each sound
         for (const [name, path] of Object.entries(soundFiles)) {
             try {
@@ -221,6 +233,7 @@ export class AssetLoader {
                 // Silent fallback already created
             }
         }
+        */
     }
     
     getTexture(name) {
