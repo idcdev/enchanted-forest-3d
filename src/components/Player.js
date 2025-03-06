@@ -351,45 +351,57 @@ export class Player {
         this.velocity.add(direction);
         
         // Make player briefly invulnerable after knockback
+        this.makeInvulnerable(1.0); // 1 second of invulnerability
+    }
+    
+    // Make player invulnerable for a specified duration - NEW
+    makeInvulnerable(duration) {
         if (!this.isInvulnerable) {
             this.isInvulnerable = true;
             
             // Flash effect to indicate invulnerability
             this.showInvulnerabilityEffect();
             
-            // Reset invulnerability after a delay
+            // Reset invulnerability after the specified duration
             setTimeout(() => {
                 this.isInvulnerable = false;
-                this.mesh.material.opacity = 1;
-                this.mesh.material.transparent = false;
-            }, 1000);
+                this.hideInvulnerabilityEffect();
+            }, duration * 1000);
         }
     }
     
     showDamageEffect() {
         // Flash red to indicate damage
-        const originalColor = this.mesh.material.color.clone();
-        this.mesh.material.color.set(0xff0000);
+        const originalMaterial = this.mesh.material.clone();
+        this.mesh.material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
         
-        // Play damage sound
-        this.assetLoader.playSound('damage');
-        
+        // Reset material after a short delay
         setTimeout(() => {
-            this.mesh.material.color.copy(originalColor);
+            this.mesh.material = originalMaterial;
         }, 200);
     }
     
     showInvulnerabilityEffect() {
-        // Make player semi-transparent and flash
+        // Make player semi-transparent and add flashing effect
         this.mesh.material.transparent = true;
         
-        const flashInterval = setInterval(() => {
-            this.mesh.material.opacity = this.mesh.material.opacity === 1 ? 0.5 : 1;
-        }, 100);
+        // Start flashing effect
+        this.invulnerabilityFlashInterval = setInterval(() => {
+            // Toggle between semi-transparent and more visible
+            this.mesh.material.opacity = this.mesh.material.opacity < 0.5 ? 0.8 : 0.3;
+        }, 150); // Flash every 150ms
+    }
+    
+    hideInvulnerabilityEffect() {
+        // Stop flashing effect
+        if (this.invulnerabilityFlashInterval) {
+            clearInterval(this.invulnerabilityFlashInterval);
+            this.invulnerabilityFlashInterval = null;
+        }
         
-        setTimeout(() => {
-            clearInterval(flashInterval);
-        }, 1000);
+        // Reset material
+        this.mesh.material.transparent = false;
+        this.mesh.material.opacity = 1.0;
     }
     
     reset() {

@@ -232,18 +232,24 @@ export class Game {
         const enemies = this.level.getEnemies();
         for (const enemy of enemies) {
             if (this.physics.checkCollision(this.player.getCollider(), enemy.getCollider())) {
-                // Handle enemy collision
-                this.damagePlayer(10);
-                
-                // Knockback player
-                const knockbackDirection = new THREE.Vector3()
-                    .subVectors(this.player.position, enemy.position)
-                    .normalize()
-                    .multiplyScalar(5);
-                this.player.applyKnockback(knockbackDirection);
-                
-                // Play enemy attack sound
-                this.player.assetLoader.playSound('enemyAttack');
+                // Only take damage if the enemy is attacking and player is not invulnerable
+                if (enemy.isCurrentlyAttacking() && !this.player.isInvulnerable) {
+                    // Handle enemy collision
+                    this.damagePlayer(enemy.getAttackDamage());
+                    
+                    // Knockback player
+                    const knockbackDirection = new THREE.Vector3()
+                        .subVectors(this.player.position, enemy.position)
+                        .normalize()
+                        .multiplyScalar(8); // Increased knockback for better escape
+                    this.player.applyKnockback(knockbackDirection);
+                    
+                    // Play enemy attack sound
+                    this.player.assetLoader.playSound('enemyAttack');
+                    
+                    // Show hit message
+                    this.ui.showMessage(`Hit! -${enemy.getAttackDamage()} health`, 1000);
+                }
             }
         }
         
@@ -301,10 +307,24 @@ export class Game {
     }
     
     damagePlayer(amount) {
+        // Skip damage if player is invulnerable
+        if (this.player.isInvulnerable) {
+            return;
+        }
+        
         this.state.health = Math.max(0, this.state.health - amount);
         
         // Visual feedback for damage
         this.player.showDamageEffect();
+        
+        // Make player invulnerable for a short time
+        this.player.makeInvulnerable(1.5); // 1.5 seconds of invulnerability
+        
+        // Camera shake effect for damage feedback
+        this.shakeCamera(0.5, 0.2); // Duration, intensity
+        
+        // Play damage sound
+        this.player.assetLoader.playSound('playerDamage');
     }
     
     togglePause() {
@@ -649,5 +669,29 @@ export class Game {
         };
         
         animateArea();
+    }
+    
+    // Add camera shake effect for better feedback - NEW
+    shakeCamera(duration, intensity) {
+        const originalPosition = this.camera.position.clone();
+        const startTime = Date.now();
+        
+        const shakeInterval = setInterval(() => {
+            const elapsed = (Date.now() - startTime) / 1000;
+            
+            if (elapsed >= duration) {
+                clearInterval(shakeInterval);
+                this.camera.position.copy(originalPosition);
+                return;
+            }
+            
+            // Decrease intensity over time
+            const currentIntensity = intensity * (1 - elapsed / duration);
+            
+            // Apply random offset to camera
+            this.camera.position.x = originalPosition.x + (Math.random() - 0.5) * currentIntensity;
+            this.camera.position.y = originalPosition.y + (Math.random() - 0.5) * currentIntensity;
+            this.camera.position.z = originalPosition.z + (Math.random() - 0.5) * currentIntensity;
+        }, 16); // ~60fps
     }
 } 
