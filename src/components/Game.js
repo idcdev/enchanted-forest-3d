@@ -88,18 +88,36 @@ export class Game {
     }
     
     setupClassSelection() {
+        console.log('Game.setupClassSelection called');
+        
         // Set callback for class selection
-        this.ui.setClassSelectionCallback((className) => {
-            // Set player class
-            this.player.setClass(className);
-            
-            // Start the game
-            this.state.isPlaying = true;
-            this.clock.start();
-            
-            // Show message
-            this.ui.showMessage(`You are now a ${className}. Good luck!`, 3000);
-        });
+        if (this.ui) {
+            console.log('Setting class selection callback');
+            this.ui.setClassSelectionCallback((className) => {
+                console.log(`Class selection callback called with className: ${className}`);
+                
+                // Set player class
+                if (this.player) {
+                    this.player.setClass(className);
+                } else {
+                    console.error('Player not available for setting class');
+                }
+                
+                // Start the game
+                this.state.isPlaying = true;
+                
+                // Start the clock if it's not already running
+                if (this.clock && this.clock.running === false) {
+                    console.log('Starting game clock');
+                    this.clock.start();
+                }
+                
+                // Show message
+                this.ui.showMessage(`You are now a ${className}. Good luck!`, 3000);
+            });
+        } else {
+            console.error('UI not available for setting class selection callback');
+        }
     }
     
     showLevelInfo() {

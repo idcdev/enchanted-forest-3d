@@ -65,6 +65,7 @@ export class UI {
         setTimeout(() => {
             this.loadingScreen.style.display = 'none';
             // Show class selection screen after loading
+            console.log('Showing class selection screen');
             this.showClassSelection();
         }, 1000);
     }
@@ -197,29 +198,52 @@ export class UI {
     
     // Add new methods for class selection
     showClassSelection() {
-        this.classSelectionScreen.style.display = 'flex';
+        console.log('showClassSelection called');
+        if (this.classSelectionScreen) {
+            console.log('Class selection screen exists, showing it');
+            this.classSelectionScreen.style.display = 'flex';
+        } else {
+            console.error('Class selection screen not found');
+        }
     }
     
     hideClassSelection() {
-        this.classSelectionScreen.style.display = 'none';
+        console.log('hideClassSelection called');
+        if (this.classSelectionScreen) {
+            this.classSelectionScreen.style.display = 'none';
+        } else {
+            console.error('Class selection screen not found');
+        }
     }
     
     selectClass(className) {
+        console.log(`selectClass called with className: ${className}`);
+        
         // Update class icon
-        this.classIcon.className = '';
-        this.classIcon.classList.add(className);
+        if (this.classIcon) {
+            this.classIcon.className = '';
+            this.classIcon.classList.add(className);
+        } else {
+            console.error('Class icon element not found');
+        }
         
         // Hide class selection screen
         this.hideClassSelection();
         
         // Play class selection sound
         if (window.game && window.game.player && window.game.player.assetLoader) {
+            console.log('Playing class selection sound');
             window.game.player.assetLoader.playSound('classSelected');
+        } else {
+            console.warn('Game, player, or assetLoader not available for playing sound');
         }
         
         // Call the callback if it exists
         if (this.onClassSelected) {
+            console.log('Calling onClassSelected callback');
             this.onClassSelected(className);
+        } else {
+            console.error('No onClassSelected callback set');
         }
         
         // Show message
@@ -227,6 +251,7 @@ export class UI {
     }
     
     setClassSelectionCallback(callback) {
+        console.log('setClassSelectionCallback called');
         this.onClassSelected = callback;
     }
 }

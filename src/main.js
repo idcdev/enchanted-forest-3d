@@ -57,6 +57,21 @@ class Main {
         
         // Start loading assets
         this.loadAssets();
+        
+        // Fallback: Start game after a timeout if loading doesn't complete
+        this.loadingTimeout = setTimeout(() => {
+            console.warn('Loading timeout reached, starting game anyway');
+            const loadingScreen = document.getElementById('loading-screen');
+            if (loadingScreen.style.display !== 'none') {
+                loadingScreen.style.opacity = '0';
+                setTimeout(() => {
+                    loadingScreen.style.display = 'none';
+                    if (!this.player) {
+                        this.startGame();
+                    }
+                }, 1000);
+            }
+        }, 5000); // 5 seconds timeout
     }
     
     setupLoadingManager() {
@@ -71,7 +86,15 @@ class Main {
         };
         
         this.loadingManager.onLoad = () => {
+            console.log('Loading complete!');
             loadingText.textContent = 'Loading complete!';
+            
+            // Clear the loading timeout
+            if (this.loadingTimeout) {
+                clearTimeout(this.loadingTimeout);
+                this.loadingTimeout = null;
+            }
+            
             setTimeout(() => {
                 loadingScreen.style.opacity = '0';
                 setTimeout(() => {
@@ -81,8 +104,13 @@ class Main {
             }, 1000);
         };
         
+        // Modify error handling to be less intrusive
         this.loadingManager.onError = (url) => {
+            // Just log the error without affecting the loading process
             console.warn(`Non-critical error loading asset: ${url}`);
+            
+            // Continue with loading process
+            // The AssetLoader will use fallbacks for missing assets
         };
     }
     
@@ -124,6 +152,15 @@ class Main {
         this.assetLoader.loadTextures();
         this.assetLoader.loadModels();
         this.assetLoader.loadSounds();
+        
+        // Load a dummy resource to ensure the loadingManager fires the onLoad event
+        const textureLoader = new THREE.TextureLoader(this.loadingManager);
+        textureLoader.load(
+            'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+            () => console.log('Dummy texture loaded'),
+            undefined,
+            (error) => console.warn('Error loading dummy texture:', error)
+        );
     }
     
     startGame() {
@@ -157,13 +194,21 @@ class Main {
     animate() {
         requestAnimationFrame(this.animate.bind(this));
         
-        const deltaTime = Math.min(0.05, this.game.clock.getDelta());
-        
-        // Update game
-        this.game.update(deltaTime);
-        
-        // Render scene
-        this.renderer.render(this.scene, this.camera);
+        try {
+            // Only update if game exists
+            if (this.game) {
+                const deltaTime = Math.min(0.05, this.game.clock.getDelta());
+                
+                // Update game
+                this.game.update(deltaTime);
+            }
+            
+            // Render scene
+            this.renderer.render(this.scene, this.camera);
+        } catch (error) {
+            console.error('Error in animation loop:', error);
+            // Continue the animation loop despite errors
+        }
     }
 }
 
