@@ -4,7 +4,7 @@ A 3D platform game built with Three.js where players navigate through an enchant
 
 ## Features
 
-- 3D platformer gameplay with jumping, running, and flying abilities
+- 3D platformer gameplay with flying abilities
 - Beautiful enchanted forest environment with trees, giant mushrooms, and magical elements
 - Collectible items: magical seeds and nature crystals
 - Enemies: corrupted creatures and hunters
@@ -30,8 +30,7 @@ npm run dev
 ## Controls
 
 - WASD or Arrow Keys: Move
-- Space: Jump
-- F: Fly (hold to activate flight)
+- Space: Fly (hold to activate flight)
 - Shift: Sprint
 
 ## Level System
@@ -51,7 +50,7 @@ The game features multiple levels with increasing difficulty:
 
 The game features a complete audio system with:
 - Background music
-- Sound effects for player actions (jumping, flying, taking damage)
+- Sound effects for player actions (flying, taking damage)
 - Sound effects for collectibles and enemies
 - UI sounds for buttons and game events
 

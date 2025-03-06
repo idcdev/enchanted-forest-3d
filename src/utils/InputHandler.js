@@ -34,7 +34,7 @@ export class InputHandler {
     
     handleKeyDown(event) {
         // Prevent default behavior for game controls
-        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' ', 'Shift', 'f'].includes(event.key)) {
+        if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd', ' ', 'Shift'].includes(event.key)) {
             event.preventDefault();
         }
         
@@ -60,9 +60,6 @@ export class InputHandler {
                 break;
             case 'Shift':
                 this.keys.sprint = true;
-                break;
-            case 'f':
-                this.keys.action = true;
                 break;
         }
     }
@@ -90,9 +87,6 @@ export class InputHandler {
                 break;
             case 'Shift':
                 this.keys.sprint = false;
-                break;
-            case 'f':
-                this.keys.action = false;
                 break;
         }
     }

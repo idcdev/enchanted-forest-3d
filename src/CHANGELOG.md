@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 
+### Alterações de Controle
+- Removida a mecânica de pulo
+- Alterado o controle de voo da tecla F para a barra de espaço
+- Simplificado o sistema de movimento vertical para usar apenas o voo
+
 ### Fase 3 - Expansão de Conteúdo (Implementado)
 - Adicionado sistema de gerenciamento de níveis (LevelManager)
 - Implementados múltiplos níveis com diferentes dificuldades
@@ -15,7 +20,7 @@
 ### Fase 2 - Melhorias Audiovisuais (Implementado)
 - Adicionado sistema de áudio completo usando Web Audio API e Three.js
 - Implementado carregamento de sons para ações do jogador, coletáveis, inimigos e interface
-- Adicionados efeitos sonoros para pulo, voo, dano, coleta de itens e eventos do jogo
+- Adicionados efeitos sonoros para voo, dano, coleta de itens e eventos do jogo
 - Preparada estrutura para música de fundo
 - Criada documentação para o sistema de áudio
 - Preparada estrutura para modelos 3D e texturas
@@ -28,7 +33,6 @@
 - Adicionados efeitos visuais de partículas durante o voo
 - Ajustada a câmera para melhor visualização durante o voo
 - Modificada a física para desativar colisões com o chão durante o voo
-- Atualizado sistema de controle para usar a tecla F para voar
 
 ## [Planejado]
 

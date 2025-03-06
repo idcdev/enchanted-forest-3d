@@ -99,17 +99,8 @@ export class Player {
             this.velocity.z = this.direction.z * speed;
         }
         
-        // Handle jumping - simples, apenas quando a tecla é pressionada
-        if (input.jump && this.isGrounded && !this.jumpRequested) {
-            this.jumpRequested = true;
-            this.jump();
-        } else if (!input.jump) {
-            // Reset jump request when key is released
-            this.jumpRequested = false;
-        }
-        
-        // Handle flying
-        if (input.action) {
+        // Handle flying with space bar
+        if (input.jump) {
             this.fly(deltaTime);
         } else {
             this.stopFlying(deltaTime);
@@ -126,22 +117,6 @@ export class Player {
             let shortestAngle = ((angleDiff + Math.PI) % (Math.PI * 2)) - Math.PI;
             
             this.rotation.y += shortestAngle * rotationSpeed * deltaTime;
-        }
-    }
-    
-    jump() {
-        // Simplificado: se não estiver voando, aplicar um impulso vertical forte
-        if (!this.isFlying) {
-            // Aplicar um impulso vertical forte e imediato
-            this.velocity.y = this.jumpForce;
-            this.isJumping = true;
-            this.isGrounded = false;
-            
-            // Garantir que o jogador saia do chão imediatamente
-            this.position.y += 0.3;
-            
-            // Tocar som de pulo
-            this.assetLoader.playSound('jump');
         }
     }
     
